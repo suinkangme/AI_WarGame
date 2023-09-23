@@ -8,7 +8,8 @@ from time import sleep
 from typing import Tuple, TypeVar, Type, Iterable, ClassVar
 import random
 import requests
-
+#import sys
+import sys
 # maximum and minimum values for our heuristic scores (usually represents an end of game condition)
 MAX_HEURISTIC_SCORE = 2000000000
 MIN_HEURISTIC_SCORE = -2000000000
@@ -322,9 +323,22 @@ class Game:
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         if self.is_valid_move(coords):
-            self.set(coords.dst,self.get(coords.src))
-            self.set(coords.src,None)
-            return (True,"")
+            #self.set(coords.dst,self.get(coords.src))
+            #self.set(coords.src,None)
+            
+            action = f"Move from {coords.src} to {coords.dst}"
+            
+            ##self destruct
+            if coords.src.row == coords.dst.row and coords.src.col == coords.dst.col:
+                action += "\n**Self Destruct**\n"
+                self.mod_health(coords.src, -9)
+                for coord in list(coords.src.iter_range(1)): 
+                    target = self.get(coord)
+                    if target is not None:
+                        self.mod_health(coord, -2)
+                 
+            
+            return (True, action)
         return (False,"invalid move")
 
     def next_turn(self):
@@ -380,7 +394,7 @@ class Game:
             else:
                 print('Invalid coordinates! Try again.')
     
-    def human_turn(self):
+    def human_turn(self, output):
         """Human player plays a move (or get via broker)."""
         if self.options.broker is not None:
             print("Getting next move with auto-retry from game broker...")
@@ -401,6 +415,7 @@ class Game:
                 if success:
                     print(f"Player {self.next_player.name}: ",end='')
                     print(result)
+                    print(result, file = output)
                     self.next_turn()
                     break
                 else:
@@ -530,7 +545,7 @@ class Game:
 
     
     ## method added to print initial config
-    def print_initial(self, output, game : Game, options : Options):
+    def print_initial(self, output, options : Options):
         if options.game_type == GameType.AttackerVsDefender:
             play_mode = 'Player 1: Human vs Player 2: Human'
         elif options.game_type == GameType.AttackerVsComp:
@@ -541,7 +556,9 @@ class Game:
             play_mode = 'Player 1: AI vs Player 2: AI'
         game_param = f'Game Mode\n{play_mode}\nTimeout in seconds: {options.max_time}\nMax # of turns: {options.max_turns}\n'
         print(game_param, file = output)
-        print(game, file = output)
+        print(self, file = output)
+    
+     
         
 ##############################################################################################################
 
@@ -583,7 +600,7 @@ def main():
     ## open file and print initial configuration
     title = f'gameTrace-{options.alpha_beta}-{options.max_time}-{options.max_turns}'
     outputFile = open(f'{title}.txt', 'w')
-    game.print_initial(outputFile, game, options)
+    game.print_initial(outputFile, options)
     
     # the main game loop
     while True:
@@ -592,10 +609,14 @@ def main():
         winner = game.has_winner()
         if winner is not None:
             print(f"{winner.name} wins!")
+            
+            ##print the winner to the output file
+            print(f"{winner.name} wins in {game.turns_played} turn!", file = outputFile)
             outputFile.close()
+            
             break
         if game.options.game_type == GameType.AttackerVsDefender:
-            game.human_turn()
+            game.human_turn(outputFile)
             ##print to output file after every turn
             print(game, file = outputFile)
         elif game.options.game_type == GameType.AttackerVsComp and game.next_player == Player.Attacker:
