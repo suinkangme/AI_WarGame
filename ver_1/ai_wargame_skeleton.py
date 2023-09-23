@@ -564,6 +564,10 @@ def main():
 
     # create a new game
     game = Game(options=options)
+    
+    ## open file 
+    title = f'gameTrace-{options.alpha_beta}-{options.max_time}-{options.max_turns}'
+    outputFile = open(f'{title}.txt', 'w')
 
     # the main game loop
     while True:
@@ -572,6 +576,7 @@ def main():
         winner = game.has_winner()
         if winner is not None:
             print(f"{winner.name} wins!")
+            outputFile.close()
             break
         if game.options.game_type == GameType.AttackerVsDefender:
             game.human_turn()
@@ -586,6 +591,7 @@ def main():
                 game.post_move_to_broker(move)
             else:
                 print("Computer doesn't know what to do!!!")
+                outputFile.close()
                 exit(1)
 
 ##############################################################################################################
