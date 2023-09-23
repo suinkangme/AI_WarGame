@@ -531,15 +531,14 @@ class Game:
     
     ## method added to print initial config
     def print_initial(self, output, game : Game, options : Options):
-        if options.game_type == 'GameType.AttackerVsDefender':
+        if options.game_type == GameType.AttackerVsDefender:
             play_mode = 'Player 1: Human vs Player 2: Human'
-        elif options.game_type == 'GameType.AttackerVsComp':
+        elif options.game_type == GameType.AttackerVsComp:
             play_mode = 'Player 1: Human vs Player 2: AI'
-        elif options.game_type == 'GameType.CompVsDefender':
+        elif options.game_type == GameType.CompVsDefender:
             play_mode = 'Player 1: AI vs Player 2: Human'
         else:
             play_mode = 'Player 1: AI vs Player 2: AI'
-            
         game_param = f'Game Mode\n{play_mode}\nTimeout in seconds: {options.max_time}\nMax # of turns: {options.max_turns}\n'
         print(game_param, file = output)
         print(game, file = output)
