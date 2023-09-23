@@ -580,7 +580,7 @@ def main():
     # create a new game
     game = Game(options=options)
     
-    ## open file 
+    ## open file and print initial configuration
     title = f'gameTrace-{options.alpha_beta}-{options.max_time}-{options.max_turns}'
     outputFile = open(f'{title}.txt', 'w')
     game.print_initial(outputFile, game, options)
@@ -596,6 +596,8 @@ def main():
             break
         if game.options.game_type == GameType.AttackerVsDefender:
             game.human_turn()
+            ##print to output file after every turn
+            print(game, file = outputFile)
         elif game.options.game_type == GameType.AttackerVsComp and game.next_player == Player.Attacker:
             game.human_turn()
         elif game.options.game_type == GameType.CompVsDefender and game.next_player == Player.Defender:
