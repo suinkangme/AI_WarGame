@@ -332,8 +332,6 @@ class Game:
             if adjacent_unit is not None:
                 if adjacent_unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
                     return False
-                else:
-                    return True
         
         ## Check movement restrictions based on player and unit type
         if self.player == Player.Attacker:
@@ -400,8 +398,9 @@ class Game:
                     adjacent_unit.health -= damage_by_self
                     if adjacent_unit.health <= 0:
                         self.remove_dead(adjacent_coord)
-                    else:
-                        return True
+
+            return True
+                   
          
         return (unit is None)
 
