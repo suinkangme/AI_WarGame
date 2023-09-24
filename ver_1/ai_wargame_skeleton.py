@@ -319,8 +319,6 @@ class Game:
         
         if unit is None or unit.player != self.next_player:
             return False
-        
-        unit = self.get(coords.dst)
 
         ## Check if the destination is free
         if self.is_empty(coords.dst):
@@ -357,7 +355,27 @@ class Game:
                  # Defender's Tech and Virus can move left, top, right, bottom
                 if abs(coords.dst.row - coords.src.row) > 1 or abs(coords.dst.col - coords.src.col) > 1:
                     return False
+                
+        unit_dst = self.get(coords.dst)
+        
+        # Check T and S are belong to different players before perform Attack Action 
+        if unit_dst is not None and unit_dst.player != unit.player:       
+            #  T must be adjacent to S in any of the 4 directions
+            if((abs(coords.dst.row - coords.src.row) == 1 and coords.dst.col == coords.src.col) or (coords.dst.row == coords.src.row and abs(coords.dst.col - coords.src.col) == 1)): 
 
+                # Apply bi-directional damage between T and S 
+                damage_to_s = unit.damage_amount(unit_dst)
+                unit_dst.health -= damage_to_s
+                if unit_dst.health <= 0:
+                    self.remove_dead(coords.dst)
+
+                damage_to_t = unit.damage_amount(unit)
+                unit.health -= damage_to_t
+                if unit.health <= 0:
+                    self.remove_dead(coords.src)
+
+                return True
+                
         return (unit is None)
 
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
