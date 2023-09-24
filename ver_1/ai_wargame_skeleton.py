@@ -336,20 +336,27 @@ class Game:
                     return False
                 else:
                     return True
-                
-
         
+        ## Check movement restrictions based on player and unit type
+        if self.player == Player.Attacker:
+            if self.unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
+                # Attacker's AI, Firewall, and Program can only move up or left
+                if coords.dst.row > coords.src.row or coords.dst.col > coords.src.col:
+                    return False
+            else:
+                 #  Attacker's Tech and Virus can move left, top, right, bottom
+                if abs(coords.dst.row - coords.src.row) > 1 or abs(coords.dst.col - coords.src.col) > 1:
+                    return False
                 
-
-
-
-
-
-
-       
-
-
-
+        elif self.player == Player.Defender:
+            if self.unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
+                # Defender's AI, Firewall, and Program can only move down or right
+                if coords.dst.row < coords.src.row or coords.dst.col < coords.src.col:
+                    return False
+            else:
+                 # Defender's Tech and Virus can move left, top, right, bottom
+                if abs(coords.dst.row - coords.src.row) > 1 or abs(coords.dst.col - coords.src.col) > 1:
+                    return False
 
         return (unit is None)
 
