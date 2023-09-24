@@ -338,32 +338,32 @@ class Game:
         ## Check movement restrictions based on player and unit type
         if self.player == Player.Attacker:
             if self.unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
-                # Attacker's AI, Firewall, and Program can only move up or left
+                ## Attacker's AI, Firewall, and Program can only move up or left
                 if coords.dst.row > coords.src.row or coords.dst.col > coords.src.col:
                     return False
             else:
-                 #  Attacker's Tech and Virus can move left, top, right, bottom
+                 ## Attacker's Tech and Virus can move left, top, right, bottom
                 if abs(coords.dst.row - coords.src.row) > 1 or abs(coords.dst.col - coords.src.col) > 1:
                     return False
                 
         elif self.player == Player.Defender:
             if self.unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
-                # Defender's AI, Firewall, and Program can only move down or right
+                ## Defender's AI, Firewall, and Program can only move down or right
                 if coords.dst.row < coords.src.row or coords.dst.col < coords.src.col:
                     return False
             else:
-                 # Defender's Tech and Virus can move left, top, right, bottom
+                 ## Defender's Tech and Virus can move left, top, right, bottom
                 if abs(coords.dst.row - coords.src.row) > 1 or abs(coords.dst.col - coords.src.col) > 1:
                     return False
                 
         unit_dst = self.get(coords.dst)
         
-        # To perform Attack Action, check T and S are belong to different players 
+        ## To perform Attack Action, check if T and S are belong to different players 
         if unit_dst is not None and unit_dst.player != unit.player:       
-            #  T must be adjacent to S in any of the 4 directions
+            ## T must be adjacent to S in any of the 4 directions
             if((abs(coords.dst.row - coords.src.row) == 1 and coords.dst.col == coords.src.col) or (coords.dst.row == coords.src.row and abs(coords.dst.col - coords.src.col) == 1)): 
 
-                # Apply bi-directional damage between T and S 
+                ## Apply bi-directional damage between T and S 
                 damage_to_t = unit.damage_amount(unit_dst)
                 unit_dst.health -= damage_to_t
                 if unit_dst.health <= 0:
@@ -376,9 +376,9 @@ class Game:
 
                 return True
         
-        # To perform Repair Action, check T and S are belong to the same player
+        ## To perform Repair Action, check if T and S are belong to the same player
         if unit_dst is not None and unit_dst.player == unit.player:
-            #  T must be adjacent to S in any of the 4 directions
+            ## T must be adjacent to S in any of the 4 directions
             if((abs(coords.dst.row - coords.src.row) == 1 and coords.dst.col == coords.src.col) or (coords.dst.row == coords.src.row and abs(coords.dst.col - coords.src.col) == 1)): 
                 if unit.Type == UnitType.Tech and unit_dst.Type == UnitType.Virus:
                     return False
@@ -388,6 +388,20 @@ class Game:
                     repair_t = unit.repair_amout(unit_dst)
                     unit_dst.health += repair_t
                     return True
+        
+        ## To perform Self-Destruct Action, check if coords.src is same as coords.dst
+        if unit is not None and coords.src == coords.dst: 
+            self.remove_dead(coords.src)
+            ## Damage to surrounding units 
+            for adjacent_coord in coords.src.iter_adjacent():
+                adjacent_unit = self.get(adjacent_coord)
+                if adjacent_unit is not None:
+                    damage_by_self = 2
+                    adjacent_unit.health -= damage_by_self
+                    if adjacent_unit.health <= 0:
+                        self.remove_dead(adjacent_coord)
+                    else:
+                        return True
          
         return (unit is None)
 
