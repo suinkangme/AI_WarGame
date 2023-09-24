@@ -358,24 +358,37 @@ class Game:
                 
         unit_dst = self.get(coords.dst)
         
-        # Check T and S are belong to different players before perform Attack Action 
+        # To perform Attack Action, check T and S are belong to different players 
         if unit_dst is not None and unit_dst.player != unit.player:       
             #  T must be adjacent to S in any of the 4 directions
             if((abs(coords.dst.row - coords.src.row) == 1 and coords.dst.col == coords.src.col) or (coords.dst.row == coords.src.row and abs(coords.dst.col - coords.src.col) == 1)): 
 
                 # Apply bi-directional damage between T and S 
-                damage_to_s = unit.damage_amount(unit_dst)
-                unit_dst.health -= damage_to_s
+                damage_to_t = unit.damage_amount(unit_dst)
+                unit_dst.health -= damage_to_t
                 if unit_dst.health <= 0:
                     self.remove_dead(coords.dst)
 
-                damage_to_t = unit.damage_amount(unit)
-                unit.health -= damage_to_t
+                damage_to_s = unit_dst.damage_amount(unit)
+                unit.health -= damage_to_s
                 if unit.health <= 0:
                     self.remove_dead(coords.src)
 
                 return True
-                
+        
+        # To perform Repair Action, check T and S are belong to the same player
+        if unit_dst is not None and unit_dst.player == unit.player:
+            #  T must be adjacent to S in any of the 4 directions
+            if((abs(coords.dst.row - coords.src.row) == 1 and coords.dst.col == coords.src.col) or (coords.dst.row == coords.src.row and abs(coords.dst.col - coords.src.col) == 1)): 
+                if unit.Type == UnitType.Tech and unit_dst.Type == UnitType.Virus:
+                    return False
+                elif unit_dst.health > 8:
+                    return False
+                else: 
+                    repair_t = unit.repair_amout(unit_dst)
+                    unit_dst.health += repair_t
+                    return True
+         
         return (unit is None)
 
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
