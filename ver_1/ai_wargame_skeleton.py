@@ -314,10 +314,43 @@ class Game:
         """Validate a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
             return False
+        
         unit = self.get(coords.src)
+        
         if unit is None or unit.player != self.next_player:
             return False
+        
         unit = self.get(coords.dst)
+
+        ## Check if the destination is free
+        if self.is_empty(coords.dst):
+            return True
+        else:
+            return False
+        
+        ## Check if the units(AI, Firewall, Program) are engaged in combat
+        for adjacent_coord in coords.src.iter_adjacent():
+            adjacent_unit = self.get(adjacent_coord)
+            if adjacent_unit is not None:
+                if adjacent_unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
+                    return False
+                else:
+                    return True
+                
+
+        
+                
+
+
+
+
+
+
+       
+
+
+
+
         return (unit is None)
 
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
