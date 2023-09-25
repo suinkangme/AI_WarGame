@@ -385,22 +385,7 @@ class Game:
                 else: 
                     repair_t = unit.repair_amout(unit_dst)
                     unit_dst.health += repair_t
-                    return True
-        
-        ## To perform Self-Destruct Action, check if coords.src is same as coords.dst
-        if unit is not None and coords.src == coords.dst: 
-            self.remove_dead(coords.src)
-            ## Damage to surrounding units 
-            for adjacent_coord in coords.src.iter_adjacent():
-                adjacent_unit = self.get(adjacent_coord)
-                if adjacent_unit is not None:
-                    damage_by_self = 2
-                    adjacent_unit.health -= damage_by_self
-                    if adjacent_unit.health <= 0:
-                        self.remove_dead(adjacent_coord)
-
-            return True
-                   
+                    return True                   
          
         return (unit is None)
 
