@@ -407,9 +407,7 @@ class Game:
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         if self.is_valid_move(coords):
-            #self.set(coords.dst,self.get(coords.src))
-            #self.set(coords.src,None)
-            
+                     
             action = f"Move from {coords.src} to {coords.dst}"
             
             ##self destruct
@@ -420,8 +418,24 @@ class Game:
                     target = self.get(coord)
                     if target is not None:
                         self.mod_health(coord, -2)
-                 
-            
+            else:                 
+                ##in case of moving
+                target = self.get(coords.dst)
+                if target is None:
+                    action += "\n**Moving**\n"
+                    self.set(coords.dst,self.get(coords.src))
+                    self.set(coords.src, None)
+                else:
+                    ##in case of attack
+                    if source.player != destination.player:
+                        action += "\n**Attack each other**\n"
+                        self.mod_health(coords.dst, -coords.src.damage_amount(coords.src))
+                        self.mod_health(coords.src, -coords.dst.damage_amount(coord.dst))
+               
+                    ##in cases of repair
+                    else:
+                        action += "\n**Repair**\n"  
+                        self.mod_health (coords.dst, coords.src.repair_amount(coords.src))         
             return (True, action)
         return (False,"invalid move")
 
