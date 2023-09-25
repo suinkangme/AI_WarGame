@@ -320,11 +320,13 @@ class Game:
         if unit is None or unit.player != self.next_player:
             return False
 
+        '''
         ## Check if the destination is free
         if self.is_empty(coords.dst):
             return True
         else:
             return False
+        '''
         
         ## Check if the units(AI, Firewall, Program) are engaged in combat
         for adjacent_coord in coords.src.iter_adjacent():
@@ -361,6 +363,7 @@ class Game:
             ## T must be adjacent to S in any of the 4 directions
             if((abs(coords.dst.row - coords.src.row) == 1 and coords.dst.col == coords.src.col) or (coords.dst.row == coords.src.row and abs(coords.dst.col - coords.src.col) == 1)): 
 
+                '''
                 ## Apply bi-directional damage between T and S 
                 damage_to_t = unit.damage_amount(unit_dst)
                 unit_dst.health -= damage_to_t
@@ -371,6 +374,7 @@ class Game:
                 unit.health -= damage_to_s
                 if unit.health <= 0:
                     self.remove_dead(coords.src)
+                '''
 
                 return True
         
@@ -383,8 +387,10 @@ class Game:
                 elif unit_dst.health > 8:
                     return False
                 else: 
+                    '''
                     repair_t = unit.repair_amout(unit_dst)
                     unit_dst.health += repair_t
+                    '''
                     return True                   
          
         return (unit is None)
