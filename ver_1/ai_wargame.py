@@ -307,7 +307,9 @@ class Game:
         """Modify health of unit at Coord (positive or negative delta)."""
         target = self.get(coord)
         if target is not None:
+            print(f"before{target.health}")
             target.mod_health(health_delta)
+            print(f"after{target.health}")
             self.remove_dead(coord)
 
     def is_valid_move(self, coords : CoordPair) -> bool:
@@ -366,9 +368,9 @@ class Game:
             if unit_dst.player == unit.player:
                 ## T must be adjacent to S in any of the 4 directions
                 if((abs(coords.dst.row - coords.src.row) == 1 and coords.dst.col == coords.src.col) or (coords.dst.row == coords.src.row and abs(coords.dst.col - coords.src.col) == 1)): 
-                    if unit.Type == UnitType.Tech and unit_dst.Type == UnitType.Virus:
+                    if unit.type == UnitType.Tech and unit_dst.type == UnitType.Virus:
                         return False
-                    elif unit_dst.mod_health == 9:
+                    elif unit_dst.health == 9:
                         return False 
                     else: 
                         return True                   
@@ -392,21 +394,23 @@ class Game:
             else:                 
                 ##in case of moving
                 target = self.get(coords.dst)
+                source = self.get(coords.src)
+                
                 if target is None:
-                    action += "\n**Moving**\n"
+                    action += "\n**Moving**"
                     self.set(coords.dst,self.get(coords.src))
                     self.set(coords.src, None)
                 else:
                     ##in case of attack
-                    if source.player != destination.player:
-                        action += "\n**Attack each other**\n"
-                        self.mod_health(coords.dst, -coords.src.damage_amount(coords.src))
-                        self.mod_health(coords.src, -coords.dst.damage_amount(coord.dst))
+                    if self.get(coords.src).player != target.player:
+                        action += "\n**Attack each other**"
+                        self.mod_health(coords.dst, -source.damage_amount(source))
+                        self.mod_health(coords.src, -target.damage_amount(target))
                
                     ##in cases of repair
                     else:
-                        action += "\n**Repair**\n"  
-                        self.mod_health (coords.dst, coords.src.repair_amount(coords.src))         
+                        action += "\n**Repair**"  
+                        self.mod_health(coords.dst, source.repair_amount(source))         
             return (True, action)
         return (False,"invalid move")
 
