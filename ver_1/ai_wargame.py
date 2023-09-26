@@ -320,13 +320,11 @@ class Game:
         if unit is None or unit.player != self.next_player:
             return False
 
-        '''
+        
         ## Check if the destination is free
-        if self.is_empty(coords.dst):
-            return True
-        else:
+        if not self.is_empty(coords.dst):
             return False
-        '''
+        
         
         ## Check if the units(AI, Firewall, Program) are engaged in combat
         for adjacent_coord in coords.src.iter_adjacent():
@@ -336,8 +334,8 @@ class Game:
                     return False
         
         ## Check movement restrictions based on player and unit type
-        if self.player == Player.Attacker:
-            if self.unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
+        if self.next_player == Player.Attacker:
+            if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
                 ## Attacker's AI, Firewall, and Program can only move up or left
                 if coords.dst.row > coords.src.row or coords.dst.col > coords.src.col:
                     return False
@@ -346,8 +344,8 @@ class Game:
                 if abs(coords.dst.row - coords.src.row) > 1 or abs(coords.dst.col - coords.src.col) > 1:
                     return False
                 
-        elif self.player == Player.Defender:
-            if self.unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
+        elif self.next_player == Player.Defender:
+            if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
                 ## Defender's AI, Firewall, and Program can only move down or right
                 if coords.dst.row < coords.src.row or coords.dst.col < coords.src.col:
                     return False
