@@ -320,79 +320,61 @@ class Game:
         if unit is None or unit.player != self.next_player:
             return False
 
-        
-        ## Check if the destination is free
-        if not self.is_empty(coords.dst):
-            return False
-        
-        
-        ## Check if the units(AI, Firewall, Program) are engaged in combat
-        for adjacent_coord in coords.src.iter_adjacent():
-            adjacent_unit = self.get(adjacent_coord)
-            if adjacent_unit is not None:
-                if adjacent_unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
-                    return False
-        
-        ## Check movement restrictions based on player and unit type
-        if self.next_player == Player.Attacker:
-            if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
-                ## Attacker's AI, Firewall, and Program can only move up or left
-                if coords.dst.row > coords.src.row or coords.dst.col > coords.src.col:
-                    return False
-            else:
-                 ## Attacker's Tech and Virus can move left, top, right, bottom
-                if abs(coords.dst.row - coords.src.row) > 1 or abs(coords.dst.col - coords.src.col) > 1:
-                    return False
-                
-        elif self.next_player == Player.Defender:
-            if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
-                ## Defender's AI, Firewall, and Program can only move down or right
-                if coords.dst.row < coords.src.row or coords.dst.col < coords.src.col:
-                    return False
-            else:
-                 ## Defender's Tech and Virus can move left, top, right, bottom
-                if abs(coords.dst.row - coords.src.row) > 1 or abs(coords.dst.col - coords.src.col) > 1:
-                    return False
-                
         unit_dst = self.get(coords.dst)
         
-        ## To perform Attack Action, check if T and S are belong to different players 
-        if unit_dst is not None and unit_dst.player != unit.player:       
-            ## T must be adjacent to S in any of the 4 directions
-            if((abs(coords.dst.row - coords.src.row) == 1 and coords.dst.col == coords.src.col) or (coords.dst.row == coords.src.row and abs(coords.dst.col - coords.src.col) == 1)): 
+        ## Check if the destination is free
+        if self.is_empty(coords.dst):
+            ## Check if the units(AI, Firewall, Program) are engaged in combat
+            for adjacent_coord in coords.src.iter_adjacent():
+                adjacent_unit = self.get(adjacent_coord)
 
-                '''
-                ## Apply bi-directional damage between T and S 
-                damage_to_t = unit.damage_amount(unit_dst)
-                unit_dst.health -= damage_to_t
-                if unit_dst.health <= 0:
-                    self.remove_dead(coords.dst)
+                if adjacent_unit is not None and unit.player != adjacent_unit.player:
+                    if adjacent_unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
+                        return False
 
-                damage_to_s = unit_dst.damage_amount(unit)
-                unit.health -= damage_to_s
-                if unit.health <= 0:
-                    self.remove_dead(coords.src)
-                '''
 
-                return True
+             ## Check movement restrictions based on player and unit type
+            if self.next_player == Player.Attacker:
+                if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
+                    ## Attacker's AI, Firewall, and Program can only move up or left
+                    if coords.dst.row > coords.src.row or coords.dst.col > coords.src.col:
+                        return False
+                else:
+                     ## Attacker's Tech and Virus can move left, top, right, bottom
+                    if abs(coords.dst.row - coords.src.row) > 1 or abs(coords.dst.col - coords.src.col) > 1:
+                        return False
+                
+            elif self.next_player == Player.Defender:
+                if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
+                    ## Defender's AI, Firewall, and Program can only move down or right
+                    if coords.dst.row < coords.src.row or coords.dst.col < coords.src.col:
+                        return False
+                else:
+                     ## Defender's Tech and Virus can move left, top, right, bottom
+                    if abs(coords.dst.row - coords.src.row) > 1 or abs(coords.dst.col - coords.src.col) > 1:
+                        return False
         
-        ## To perform Repair Action, check if T and S are belong to the same player
-        if unit_dst is not None and unit_dst.player == unit.player:
-            ## T must be adjacent to S in any of the 4 directions
-            if((abs(coords.dst.row - coords.src.row) == 1 and coords.dst.col == coords.src.col) or (coords.dst.row == coords.src.row and abs(coords.dst.col - coords.src.col) == 1)): 
-                if unit.Type == UnitType.Tech and unit_dst.Type == UnitType.Virus:
-                    return False
-                elif unit_dst.health > 8:
-                    return False
-                else: 
-                    '''
-                    repair_t = unit.repair_amout(unit_dst)
-                    unit_dst.health += repair_t
-                    '''
-                    return True                   
+        else:
+                         
+            ## To perform Attack Action, check if T and S are belong to different players 
+            if unit_dst.player != unit.player:       
+                ## T must be adjacent to S in any of the 4 directions
+                if((abs(coords.dst.row - coords.src.row) == 1 and coords.dst.col == coords.src.col) or (coords.dst.row == coords.src.row and abs(coords.dst.col - coords.src.col) == 1)): 
+                    return True
+        
+            ## To perform Repair Action, check if T and S are belong to the same player
+            if unit_dst.player == unit.player:
+                ## T must be adjacent to S in any of the 4 directions
+                if((abs(coords.dst.row - coords.src.row) == 1 and coords.dst.col == coords.src.col) or (coords.dst.row == coords.src.row and abs(coords.dst.col - coords.src.col) == 1)): 
+                    if unit.Type == UnitType.Tech and unit_dst.Type == UnitType.Virus:
+                        return False
+                    elif unit_dst.mod_health == 9:
+                        return False 
+                    else: 
+                        return True                   
          
-        return (unit is None)
-
+        return True
+    
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         if self.is_valid_move(coords):
