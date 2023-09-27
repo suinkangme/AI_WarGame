@@ -307,9 +307,7 @@ class Game:
         """Modify health of unit at Coord (positive or negative delta)."""
         target = self.get(coord)
         if target is not None:
-            print(f"before{target.health}")
             target.mod_health(health_delta)
-            print(f"after{target.health}")
             self.remove_dead(coord)
 
     def is_valid_move(self, coords : CoordPair) -> bool:
@@ -398,7 +396,7 @@ class Game:
                 
                 if target is None:
                     action += "\n**Moving**"
-                    self.set(coords.dst,self.get(coords.src))
+                    self.set(coords.dst,source)
                     self.set(coords.src, None)
                 else:
                     ##in case of attack
@@ -410,7 +408,7 @@ class Game:
                     ##in cases of repair
                     else:
                         action += "\n**Repair**"  
-                        self.mod_health(coords.dst, source.repair_amount(source))         
+                        self.mod_health(coords.dst, source.repair_amount(target))         
             return (True, action)
         return (False,"invalid move")
 
@@ -669,6 +667,8 @@ def main():
 
     # create a new game
     game = Game(options=options)
+    if args.game_type == "manual":
+        options.alpha_beta = False
     
     ## open file and print initial configuration
     title = f'gameTrace-{options.alpha_beta}-{options.max_time}-{options.max_turns}'
