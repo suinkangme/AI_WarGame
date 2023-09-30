@@ -317,6 +317,7 @@ class Game:
         
         unit = self.get(coords.src)
         
+        ##Player in turn must play its own unit, not the opponent's.
         if unit is None or unit.player != self.next_player:
             return False
 
@@ -333,7 +334,6 @@ class Game:
             ## Check if the units(AI, Firewall, Program) are engaged in combat
             for adjacent_coord in adjacent_list:
                 adjacent_unit = self.get(adjacent_coord)
-
                 if adjacent_unit is not None and unit.player != adjacent_unit.player:
                     if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
                         return False
@@ -401,19 +401,19 @@ class Game:
                 source = self.get(coords.src)
                 
                 if target is None:
-                    action += "\n**Moving**"
+                    action += "\n**Moving**\n"
                     self.set(coords.dst,source)
                     self.set(coords.src, None)
                 else:
                     ##in case of attack
                     if self.get(coords.src).player != target.player:
-                        action += "\n**Attack each other**"
+                        action += "\n**Attack each other**\n"
                         self.mod_health(coords.dst, -source.damage_amount(target))
                         self.mod_health(coords.src, -target.damage_amount(source))
                
                     ##in cases of repair
                     else:
-                        action += "\n**Repair**"  
+                        action += "\n**Repair**\n"  
                         self.mod_health(coords.dst, source.repair_amount(target))         
             return (True, action)
         return (False,"invalid move")
@@ -648,6 +648,7 @@ def main():
     parser.add_argument('--max_time', type=float, help='maximum search time')
     parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
     parser.add_argument('--broker', type=str, help='play via a game broker')
+    
     ##input max num of turns
     parser.add_argument('--max_turns', type = int, help = 'maximum number of turns')
     args = parser.parse_args()
@@ -672,11 +673,14 @@ def main():
         options.max_time = args.max_time
     if args.broker is not None:
         options.broker = args.broker
+    ##set up max num of turns as input value
     if args.max_turns is not None:
         options.max_turns = args.max_turns
 
     # create a new game
     game = Game(options=options)
+    
+    ##if game_type is human vs human, turn off alpha beta
     if args.game_type == "manual":
         options.alpha_beta = False
     
