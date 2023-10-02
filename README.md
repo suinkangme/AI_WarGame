@@ -11,9 +11,9 @@ Student Id | Name
 40174913   | Hyun Soo Kim
 
 
-***Deliverable 1*** - Submitted on September 29th.
+***Deliverable 1***
 
-Description: For this deliverable, 
+For this deliverable, 
 
   * we completed the validation and execution logic in the is_valid_move() and perform_move() methods in the Game class. 
 
