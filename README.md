@@ -24,4 +24,7 @@ Description: For this deliverable,
   * Furthermore, they can configure the maximum number of turns and the maximum time allowed for each turn.
 
   * An output file will be generated, documenting the details of each action and the winner.
+
+  * To play manual mode and set up the max time for each turn as 3 seconds, maximum number of turns as 50, type like this:<br/>
+    `python ai_wargame.py --game_type "manual" --max_turns 50 --max_time 3.0`
   
