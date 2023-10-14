@@ -253,6 +253,8 @@ class Game:
     num_units_attacker = {'Virus': 2, 'Firewall': 1, 'Program': 2, 'AI': 1}
     num_units_defender = {'Tech': 2, 'Firewall': 2, 'Program': 1, 'AI': 1}
     
+    ##check if illegal move by computer was attempted
+    comp_illegal_move: bool = False
 
     def __post_init__(self):
         """Automatically called after class init to set up the default board state."""
@@ -534,6 +536,8 @@ class Game:
                 print(result)
                 print(result, file = output)
                 self.next_turn()
+            else:
+                self.comp_illegal_move = True
         return mv
 
     def player_units(self, player: Player) -> Iterable[Tuple[Coord,Unit]]:
@@ -555,7 +559,12 @@ class Game:
             if self._defender_has_ai:
                 return None
             else:
-                return Player.Attacker    
+                return Player.Attacker
+        if self.comp_illegal_move:
+            if self.options.game_type == GameType.AttackerVsComp:
+                return Player.Attacker
+            if self.options.game_type == GameType.CompVsDefender:
+                return Player.Defender
         return Player.Defender
 
     def move_candidates(self) -> Iterable[CoordPair]:
@@ -771,6 +780,17 @@ def main():
             move = game.computer_turn(outputFile)
             print(game, file = outputFile)
             
+            ##computer illegal move - AI automatically lose
+            if game.comp_illegal_move:
+                auto_lose = "Computer attempted illegal move. Game Over.\n ***Human player wins!***"
+                print(auto_lose)
+                print(auto_lose, outputFile)
+                winner = game.has_winner()
+                print(f"{winner.name} wins!")
+                print(f"{winner.name} wins in {game.turns_played} turn!", file = outputFile)
+                outputFile.close()
+                exit(0)
+                
             if move is not None:
                 game.post_move_to_broker(move)
             else:
