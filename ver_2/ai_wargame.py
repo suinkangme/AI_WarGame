@@ -652,8 +652,12 @@ def main():
     
     ##input max num of turns
     parser.add_argument('--max_turns', type = int, help = 'maximum number of turns')
+    
+    ##input alpha-beta search mode
+    parser.add_argument('--alpha_beta', type=str, default = "on", help = 'turn on/off alpha-beta search mode, on|off')
+    
     args = parser.parse_args()
-
+    
     # parse the game type
     if args.game_type == "attacker":
         game_type = GameType.AttackerVsComp
@@ -674,6 +678,7 @@ def main():
         options.max_time = args.max_time
     if args.broker is not None:
         options.broker = args.broker
+        
     ##set up max num of turns as input value
     if args.max_turns is not None:
         options.max_turns = args.max_turns
@@ -681,9 +686,9 @@ def main():
     # create a new game
     game = Game(options=options)
     
-    ##if game_type is human vs human, turn off alpha beta
-    if args.game_type == "manual":
-        options.alpha_beta = False
+    ##if game_type is human vs human or alpha_beta was asked to be off, turn off alpha beta
+    if args.game_type == "manual" or args.alpha_beta == "off":
+        options.alpha_beta = False        
     
     ## open file and print initial configuration
     title = f'gameTrace-{options.alpha_beta}-{options.max_time}-{options.max_turns}'
@@ -705,9 +710,8 @@ def main():
             break
         if game.options.game_type == GameType.AttackerVsDefender:
             game.human_turn(outputFile)
-            
-            ##print to output file after every turn
             print(game, file = outputFile)
+            
         elif game.options.game_type == GameType.AttackerVsComp and game.next_player == Player.Attacker:
             game.human_turn(outputFile)
             print(game, file = outputFile)
