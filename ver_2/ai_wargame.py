@@ -248,6 +248,11 @@ class Game:
     stats: Stats = field(default_factory=Stats)
     _attacker_has_ai : bool = True
     _defender_has_ai : bool = True
+    
+    ##how many each unit attacker and defender have? - to calculate heuristics
+    num_units_attacker = {'Virus': 2, 'Firewall': 1, 'Program': 2, 'AI': 1}
+    num_units_defender = {'Tech': 2, 'Firewall': 2, 'Program': 1, 'AI': 1}
+    
 
     def __post_init__(self):
         """Automatically called after class init to set up the default board state."""
@@ -294,9 +299,29 @@ class Game:
 
     def remove_dead(self, coord: Coord):
         """Remove unit at Coord if dead."""
-        unit = self.get(coord)
+        unit = self.get(coord)       
         if unit is not None and not unit.is_alive():
             self.set(coord,None)
+            
+            ##control the number of the unit for the correct heuristic calculation
+            if unit.type == UnitType.Virus:
+                self.num_units_attacker["Virus"] -= 1
+                
+            if unit.type == UnitType.Tech:
+                self.num_units_defender["Tech"] -= 1
+                
+            if unit.type == UnitType.Program:
+                if unit.player == Player.Attacker:
+                    self.num_units_attacker["Program"] -= 1
+                else:
+                    self.num_units_defender["Program"] -= 1
+                    
+            if unit.type == UnitType.Firewall:
+                if unit.player == Player.Attacker:
+                    self.num_units_attacker["Firewall"] -= 1
+                else:
+                    self.num_units_defender["Firewall"] -= 1
+                    
             if unit.type == UnitType.AI:
                 if unit.player == Player.Attacker:
                     self._attacker_has_ai = False
@@ -646,9 +671,18 @@ class Game:
             play_mode = 'Player 1: AI vs Player 2: AI'
         game_param = f'Game Mode\n{play_mode}\nTimeout in seconds: {options.max_time}\nMax # of turns: {options.max_turns}\n'
         print(game_param, file = output)
-        print(self, file = output)
+        print(self, file = output)       
     
-     
+    ## method added for the heuristic e0
+    def e0(self):
+        return (((3*self.num_units_attacker["Virus"])
+                 +(3*self.num_units_attacker["Firewall"])
+                 +(3*self.num_units_attacker["Program"])
+                 +(9999*self.num_units_attacker["AI"]))-
+                ((3*self.num_units_defender["Tech"])
+                 +(3*self.num_units_defender["Firewall"])
+                 +(3*self.num_units_defender["Program"])
+                 +(9999*self.num_units_defender["AI"])))
         
 ##############################################################################################################
 
