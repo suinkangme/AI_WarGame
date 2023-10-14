@@ -338,7 +338,6 @@ class Game:
                     if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
                         return False
 
-
              ## Check movement restrictions based on player and unit type
             if self.next_player == Player.Attacker:
                 if unit.type in [UnitType.AI, UnitType.Firewall, UnitType.Program]:
@@ -361,17 +360,18 @@ class Game:
                         return False
         
         else:
-                         
             ## To perform Attack Action, check if T and S are belong to different players 
             if unit_dst.player != unit.player:       
                 ## T must be adjacent to S in any of the 4 directions
-                if((abs(coords.dst.row - coords.src.row) == 1 and coords.dst.col == coords.src.col) or (coords.dst.row == coords.src.row and abs(coords.dst.col - coords.src.col) == 1)): 
+                adjacent_list = list(coords.src.iter_adjacent())
+                if coords.dst in adjacent_list:
                     return True
         
             ## To perform Repair Action, check if T and S are belong to the same player
             if unit_dst.player == unit.player:
                 ## T must be adjacent to S in any of the 4 directions
-                if((abs(coords.dst.row - coords.src.row) == 1 and coords.dst.col == coords.src.col) or (coords.dst.row == coords.src.row and abs(coords.dst.col - coords.src.col) == 1)): 
+                adjacent_list = list(coords.src.iter_adjacent())
+                if coords.dst in adjacent_list:
                     if unit.type == UnitType.Tech and unit_dst.type == UnitType.Virus:
                         return False
                     elif unit_dst.health == 9:
@@ -416,6 +416,7 @@ class Game:
                         action += "\n**Repair**\n"  
                         self.mod_health(coords.dst, source.repair_amount(target))         
             return (True, action)
+        
         return (False,"invalid move")
 
     def next_turn(self):
