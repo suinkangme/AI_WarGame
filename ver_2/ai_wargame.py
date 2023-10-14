@@ -501,7 +501,7 @@ class Game:
 
     def computer_turn(self, output) -> CoordPair | None:
         """Computer plays a move."""
-        mv = self.suggest_move()
+        mv = self.suggest_move(output)
         if mv is not None:
             (success,result) = self.perform_move(mv)
             if success:
@@ -554,12 +554,20 @@ class Game:
         else:
             return (0, None, 0)
 
-    def suggest_move(self) -> CoordPair | None:
+    def suggest_move(self, output) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
+        
+        #This is a string to be printed in the output file
+        report =""
+        
         start_time = datetime.now()
         (score, move, avg_depth) = self.random_move()
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
+        
+        heuristic_score = f"Heuristic score: {score}"
+        report += heuristic_score +"\n"
+        
         print(f"Heuristic score: {score}")
         print(f"Average recursive depth: {avg_depth:0.1f}")
         print(f"Evals per depth: ",end='')
@@ -569,7 +577,11 @@ class Game:
         total_evals = sum(self.stats.evaluations_per_depth.values())
         if self.stats.total_seconds > 0:
             print(f"Eval perf.: {total_evals/self.stats.total_seconds/1000:0.1f}k/s")
+            
+        elapsed_time = f"Elapsed time: {elapsed_seconds:0.1f}s"
+        report += elapsed_time+"\n"
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
+        print(report, file = output)
         return move
 
     def post_move_to_broker(self, move: CoordPair):
