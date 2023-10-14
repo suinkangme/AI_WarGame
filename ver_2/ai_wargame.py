@@ -498,7 +498,7 @@ class Game:
                 else:
                     print("The move is not valid! Try again.")
 
-    def computer_turn(self) -> CoordPair | None:
+    def computer_turn(self, output) -> CoordPair | None:
         """Computer plays a move."""
         mv = self.suggest_move()
         if mv is not None:
@@ -506,6 +506,7 @@ class Game:
             if success:
                 print(f"Computer {self.next_player.name}: ",end='')
                 print(result)
+                print(result, file = output)
                 self.next_turn()
         return mv
 
@@ -703,15 +704,22 @@ def main():
             break
         if game.options.game_type == GameType.AttackerVsDefender:
             game.human_turn(outputFile)
+            
             ##print to output file after every turn
             print(game, file = outputFile)
         elif game.options.game_type == GameType.AttackerVsComp and game.next_player == Player.Attacker:
-            game.human_turn()
+            game.human_turn(outputFile)
+            print(game, file = outputFile)
+            
         elif game.options.game_type == GameType.CompVsDefender and game.next_player == Player.Defender:
-            game.human_turn()
+            game.human_turn(outputFile)
+            print(game, file = outputFile)
+            
         else:
             player = game.next_player
-            move = game.computer_turn()
+            move = game.computer_turn(outputFile)
+            print(game, file = outputFile)
+            
             if move is not None:
                 game.post_move_to_broker(move)
             else:
