@@ -235,6 +235,7 @@ class Stats:
     """Representation of the global game statistics."""
     evaluations_per_depth : dict[int,int] = field(default_factory=dict)
     total_seconds: float = 0.0
+        
 
 ##############################################################################################################
 
@@ -255,7 +256,7 @@ class Game:
     
     ##check if illegal move by computer was attempted
     comp_illegal_move: bool = False
-
+        
     def __post_init__(self):
         """Automatically called after class init to set up the default board state."""
         dim = self.options.dim
@@ -588,45 +589,53 @@ class Game:
         else:
             return (0, None, 0)
         
-    def minmax_alphabeta(self,depth, alpha, beta, maximize : bool = False, coord = Coord | None) -> Tuple[int, CoordPair | None, float]:
-        if depth ==self.options.max_depth:
+    def minmax_alphabeta(self, stats_dict, depth, alpha, beta, maximize : bool = False, coord = Coord | None)-> Tuple[int, CoordPair | None, float]:
+        if depth == self.options.max_depth or self.move_candidates() is None:
             return (self.e0(), coord, depth)
         
         game_simul = self.clone()
         move_candidates = list(game_simul.move_candidates())
-        total_depth = 0
-        count = 0
         best_move = CoordPair()
         
         if maximize:
             value = alpha
             for children in move_candidates:
                 game_simul.perform_move(children)
-                h_score, move, result_depth = game_simul.minmax_alphabeta(depth+1, alpha, beta, False, children)
-                count += 1
-                total_depth += result_depth
+                h_score, move, result_depth = game_simul.minmax_alphabeta(stats_dict, depth+1, alpha, beta, False, children) 
+                ##update game stat dictionary
+                keys = stats_dict.keys()
+                if result_depth not in keys:
+                    stats_dict.update({result_depth : 1})
+                else:
+                    stats_dict.update({result_depth : stats_dict[result_depth]+1})
+                    
                 if(h_score > value):
                     best_move = children
                 value = max(value, h_score)
                 alpha = max(alpha, value)
                 if beta <= alpha:
                     break
-            return (value, best_move, (total_depth/count))
+            return (value, best_move, depth)
         else:
             value = beta
             for children in move_candidates:
                 game_simul.perform_move(children)
-                h_score, move, result_depth = game_simul.minmax_alphabeta(depth+1, alpha, beta, True, children)
-                count += 1
-                total_depth += result_depth
+                h_score, move, result_depth = game_simul.minmax_alphabeta(stats_dict, depth+1, alpha, beta, True, children)
+                
+                ##update game stat dictionary
+                keys = stats_dict.keys()
+                if result_depth not in keys:
+                    stats_dict.update({result_depth : 1})
+                else:
+                    stats_dict.update({result_depth : stats_dict[result_depth]+1})
+                    
                 if(h_score < value):
                     best_move = children
                 value = min (value, h_score)
                 beta = min (beta, value)
                 if beta <= alpha:
                     break
-            self.stats = game_simul.stats
-            return (value, best_move, (total_depth / count))  
+            return (value, best_move, depth)  
         
 
     def suggest_move(self, output) -> CoordPair | None:
@@ -634,44 +643,63 @@ class Game:
                
         #This is a string to be printed in the output file
         report =""
-        heuristic_score = ""
-        avg_dept_stat = 0.0
-        
+        stats_dict = self.stats.evaluations_per_depth
         start_time = datetime.now()
         #(score, move, avg_depth) = self.random_move()
         
         if self.options.alpha_beta:
             if self.next_player == Player.Attacker:
-                (score, move, avg_depth) = self.minmax_alphabeta(0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, True)
-                heuristic_score = f"Heuristic score: {score}"
-                avg_depth_stat = avg_depth
-                    
+                result = self.minmax_alphabeta(stats_dict, 0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, True)                    
             else:
-                (score, move, avg_depth) = self.minmax_alphabeta(0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, False)
-                heuristic_score = f"Heuristic score: {score}"
-                avg_depth_stat = avg_depth
-        else:
-            print("not yet")
+                result = self.minmax_alphabeta(stats_dict, 0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, False)
         
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
         
+        score, move, avg_depth = result
        
-        report += heuristic_score +"\n"
+        report += f"Heuristic score: {score}\n"
         
         print(f"Heuristic score: {score}")
         print(f"Average recursive depth: {avg_depth:0.1f}")
-        print(f"Evals per depth: ",end='')
-        for k in sorted(self.stats.evaluations_per_depth.keys()):
-            print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
-        print()
+        
         total_evals = sum(self.stats.evaluations_per_depth.values())
+        report += f"Cumulative evals: {total_evals}\n"
+        print(f"Cumulative evals: {total_evals}")
+        
+        non_root_node = 0
+        non_leaf_node = 0
+        
+        print(f"Evals per depth: ",end='')
+        report += f"Evals per depth: \n" 
+        keys = sorted(self.stats.evaluations_per_depth.keys())
+        for k in keys:
+            print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
+            non_root_node += self.stats.evaluations_per_depth[k]
+            if k != keys[-1]:
+                non_leaf_node += self.stats.evaluations_per_depth[k]
+            report += f"{k}:{self.stats.evaluations_per_depth[k]} "
+        print()
+        report += "\n"
+        
+        print(f"Evals per depth percentage: ", end='')
+        report += f"Evals per depth percentage: \n"
+        for k in sorted(self.stats.evaluations_per_depth.keys()):
+            calcul = (self.stats.evaluations_per_depth[k]/total_evals)*100
+            print(f"{k}: {calcul:0.1f}% ", end='')
+            report += f"{k}: {calcul:0.1f}% "
+        print()
+        report += "\n"
+
         if self.stats.total_seconds > 0:
-            print(f"Eval perf.: {total_evals/self.stats.total_seconds/1000:0.1f}k/s")
-            
-        elapsed_time = f"Elapsed time: {elapsed_seconds:0.1f}s"
-        report += elapsed_time+"\n"
+            print(f"Eval perf.: {total_evals/self.stats.total_seconds/1000:0.1f}k/s")   
+      
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
+        report += f"Elapsed time: {elapsed_seconds:0.1f}s\n"
+        
+        print(f"Branching Factor: {non_root_node / non_leaf_node: 0.1f}")
+        report += f"Branching Factor: {non_root_node / non_leaf_node: 0.1f}"
+        
         print(report, file = output)
         return move
 
