@@ -534,7 +534,7 @@ class Game:
             if success:
                 print(f"Computer {self.next_player.name}: ",end='')
                 print(result)
-                print(result, file = output)
+                print(f"Computer {self.next_player.name}: "+result, file = output)
                 self.next_turn()
             else:
                 self.comp_illegal_move = True
@@ -553,6 +553,11 @@ class Game:
 
     def has_winner(self) -> Player | None:
         """Check if the game is over and returns winner"""
+        if self.comp_illegal_move:
+            if self.options.game_type == GameType.AttackerVsComp:
+                return Player.Attacker
+            if self.options.game_type == GameType.CompVsDefender:
+                return Player.Defender
         if self.options.max_turns is not None and self.turns_played >= self.options.max_turns:
             return Player.Defender
         if self._attacker_has_ai:
@@ -560,11 +565,6 @@ class Game:
                 return None
             else:
                 return Player.Attacker
-        if self.comp_illegal_move:
-            if self.options.game_type == GameType.AttackerVsComp:
-                return Player.Attacker
-            if self.options.game_type == GameType.CompVsDefender:
-                return Player.Defender
         return Player.Defender
 
     def move_candidates(self) -> Iterable[CoordPair]:
@@ -587,19 +587,76 @@ class Game:
             return (0, move_candidates[0], 1)
         else:
             return (0, None, 0)
+        
+    def minmax_alphabeta(self,depth, alpha, beta, maximize : bool = False, coord = Coord | None) -> Tuple[int, CoordPair | None, float]:
+        if depth ==self.options.max_depth:
+            return (self.e0(), coord, depth)
+        
+        game_simul = self.clone()
+        move_candidates = list(game_simul.move_candidates())
+        total_depth = 0
+        count = 0
+        best_move = CoordPair()
+        
+        if maximize:
+            value = alpha
+            for children in move_candidates:
+                game_simul.perform_move(children)
+                h_score, move, result_depth = game_simul.minmax_alphabeta(depth+1, alpha, beta, False, children)
+                count += 1
+                total_depth += result_depth
+                if(h_score > value):
+                    best_move = children
+                value = max(value, h_score)
+                alpha = max(alpha, value)
+                if beta <= alpha:
+                    break
+            return (value, best_move, (total_depth/count))
+        else:
+            value = beta
+            for children in move_candidates:
+                game_simul.perform_move(children)
+                h_score, move, result_depth = game_simul.minmax_alphabeta(depth+1, alpha, beta, True, children)
+                count += 1
+                total_depth += result_depth
+                if(h_score < value):
+                    best_move = children
+                value = min (value, h_score)
+                beta = min (beta, value)
+                if beta <= alpha:
+                    break
+            self.stats = game_simul.stats
+            return (value, best_move, (total_depth / count))  
+        
 
     def suggest_move(self, output) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
-        
+               
         #This is a string to be printed in the output file
         report =""
+        heuristic_score = ""
+        avg_dept_stat = 0.0
         
         start_time = datetime.now()
-        (score, move, avg_depth) = self.random_move()
+        #(score, move, avg_depth) = self.random_move()
+        
+        if self.options.alpha_beta:
+            if self.next_player == Player.Attacker:
+                (score, move, avg_depth) = self.minmax_alphabeta(0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, True)
+                heuristic_score = f"Heuristic score: {score}"
+                avg_depth_stat = avg_depth
+                    
+            else:
+                (score, move, avg_depth) = self.minmax_alphabeta(0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, False)
+                heuristic_score = f"Heuristic score: {score}"
+                avg_depth_stat = avg_depth
+        else:
+            print("not yet")
+        
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
         
-        heuristic_score = f"Heuristic score: {score}"
+       
         report += heuristic_score +"\n"
         
         print(f"Heuristic score: {score}")
@@ -784,12 +841,12 @@ def main():
             if game.comp_illegal_move:
                 auto_lose = "Computer attempted illegal move. Game Over.\n ***Human player wins!***"
                 print(auto_lose)
-                print(auto_lose, outputFile)
+                print(auto_lose, file = outputFile)
                 winner = game.has_winner()
                 print(f"{winner.name} wins!")
                 print(f"{winner.name} wins in {game.turns_played} turn!", file = outputFile)
                 outputFile.close()
-                exit(0)
+                exit(1)
                 
             if move is not None:
                 game.post_move_to_broker(move)
