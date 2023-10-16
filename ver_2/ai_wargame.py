@@ -777,6 +777,15 @@ class Game:
                  +(3*self.num_units_defender["Firewall"])
                  +(3*self.num_units_defender["Program"])
                  +(9999*self.num_units_defender["AI"])))
+    
+
+    def e1(self):
+        return 
+    
+
+    def e2(self):
+        return
+ 
         
 ##############################################################################################################
 
@@ -793,6 +802,9 @@ def main():
     ##input max num of turns
     parser.add_argument('--max_turns', type = int, help = 'maximum number of turns')
     
+    # select the heuristic function among e0,e1, and e2
+    parser.add_argument('--heuristic', type=int, default=0, help='select a heuristic function (0: e0, 1: e1, 2: e2)')
+
     ##input alpha-beta search mode
     parser.add_argument('--alpha_beta', type=str, default = "on", help = 'turn on/off alpha-beta search mode, on|off')
     
@@ -819,13 +831,27 @@ def main():
     if args.broker is not None:
         options.broker = args.broker
         
-    ##set up max num of turns as input value
+    ## set up max num of turns as input value
     if args.max_turns is not None:
         options.max_turns = args.max_turns
 
     # create a new game
     game = Game(options=options)
-    
+
+    # determine which heuristic algorithm will be used
+    if args.game_type != "manual" and (game_type == GameType.AttackerVsComp or game_type == GameType.CompVsDefender or game_type ==GameType.CompVsComp):
+        if args.heuristic == '1':
+            heuristic_function = Game.e0
+        elif args.heuristic == '2':
+            heuristic_function = Game.e1
+        elif args.heuristic == '3':
+            heuristic_function = Game.e2
+        else:
+            print("Invalid choice. Using the default heuristic (e0).")
+            heuristic_function = Game.e0
+    else:
+        heuristic_function = None
+
     ##if game_type is human vs human or alpha_beta was asked to be off, turn off alpha beta
     if args.game_type == "manual" or args.alpha_beta == "off":
         options.alpha_beta = False        
