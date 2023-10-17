@@ -593,10 +593,11 @@ class Game:
             return (0, move_candidates[0], 1)
         else:
             return (0, None, 0)
+    
         
     def minmax_alphabeta(self, stats_dict, depth, alpha, beta, maximize : bool = False, coord = Coord | None)-> Tuple[int, CoordPair | None, float]:
         if depth == self.options.max_depth or self.move_candidates() is None:
-            return (self.e0(), coord, depth)
+            return (self.heuristic, coord, depth)
         
         game_simul = self.clone()
         move_candidates = list(game_simul.move_candidates())
@@ -783,25 +784,9 @@ class Game:
                  +(3*self.num_units_defender["Program"])
                  +(9999*self.num_units_defender["AI"])))
     
-
-    # heuristic e1 : game turn penalty & less weight for the program unit 
-    def e1(self, game):
-        turn_penalty = game.turns_played
-
-        return (((10*self.num_units_attacker["Virus"])
-                 +(5*self.num_units_attacker["Firewall"])
-                 +(0.1*self.num_units_attacker["Program"])
-                 +(9999*self.num_units_attacker["AI"]))-
-                 
-                ((10*self.num_units_defender["Tech"])
-                 +(5*self.num_units_defender["Firewall"])
-                 +(0.1*self.num_units_defender["Program"])
-                 +(9999*self.num_units_defender["AI"]))-
-
-                turn_penalty)
     
-    # heuristic e2 : add penalties based on the health level of the AI units
-    def e2(self):
+    # heuristic e1 : add penalties based on the health level of the AI units
+    def e1(self):
         
         attacker_ai_unit = Unit(player=Player.Attacker, type=UnitType.AI)
         defender_ai_unit = Unit(player=Player.Defender, type=UnitType.AI)
@@ -829,6 +814,20 @@ class Game:
             return 5
         else:
             return 10
+        
+    
+    # heuristic e2 : less weight for the program unit 
+    def e2(self, game):
+
+        return (((10*self.num_units_attacker["Virus"])
+                 +(5*self.num_units_attacker["Firewall"])
+                 +(0.1*self.num_units_attacker["Program"])
+                 +(9999*self.num_units_attacker["AI"]))-
+                 
+                ((10*self.num_units_defender["Tech"])
+                 +(5*self.num_units_defender["Firewall"])
+                 +(0.1*self.num_units_defender["Program"])
+                 +(9999*self.num_units_defender["AI"])))
 
 ##############################################################################################################
 
