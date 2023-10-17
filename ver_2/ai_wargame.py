@@ -515,7 +515,9 @@ class Game:
                         break
                 sleep(0.1)
         else:
-            while True:
+            # human player can have a chance without penalty
+            retry = 1 
+            while retry > 0:
                 mv = self.read_move()
                 (success,result) = self.perform_move(mv)
                 if success:
@@ -526,6 +528,9 @@ class Game:
                     break
                 else:
                     print("The move is not valid! Try again.")
+                    retry -= 1
+            if retry == 0:
+                print("No more attempt allowed. Proceeding to the next turn.")
 
     def computer_turn(self, output) -> CoordPair | None:
         """Computer plays a move."""
@@ -795,11 +800,23 @@ class Game:
 
                 turn_penalty)
     
-    # heuristic e2 : 
-    def e2(self):
-        return
+    # heuristic e2 : heuristic e1 + penalty for 
+    def e2(self, game):
+        turn_penalty = game.turns_played
+
+        return (((10*self.num_units_attacker["Virus"])
+                 +(5*self.num_units_attacker["Firewall"])
+                 +(0.1*self.num_units_attacker["Program"])
+                 +(9999*self.num_units_attacker["AI"]))-
+                 
+                ((10*self.num_units_defender["Tech"])
+                 +(5*self.num_units_defender["Firewall"])
+                 +(0.1*self.num_units_defender["Program"])
+                 +(9999*self.num_units_defender["AI"]))-
+
+                turn_penalty)
+    
  
-        
 ##############################################################################################################
 
 def main():
