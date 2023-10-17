@@ -800,9 +800,14 @@ class Game:
 
                 turn_penalty)
     
-    # heuristic e2 : heuristic e1 + penalty for 
-    def e2(self, game):
-        turn_penalty = game.turns_played
+    # heuristic e2 : add penalties based on the health level of the AI units
+    def e2(self):
+        
+        attacker_ai_unit = Unit(player=Player.Attacker, type=UnitType.AI)
+        defender_ai_unit = Unit(player=Player.Defender, type=UnitType.AI)
+
+        attacker_ai_health = self.unit_health_penalty(attacker_ai_unit.health)
+        defender_ai_health = self.unit_health_penalty(defender_ai_unit.health)
 
         return (((10*self.num_units_attacker["Virus"])
                  +(5*self.num_units_attacker["Firewall"])
@@ -814,8 +819,19 @@ class Game:
                  +(0.1*self.num_units_defender["Program"])
                  +(9999*self.num_units_defender["AI"]))-
 
-                turn_penalty)
+                attacker_ai_health - defender_ai_health)
     
+    # give health penalty based on remaining health level of the units.
+    def unit_health_penalty(self, health):
+        if health>= 9:
+            return 0.1
+        elif health >= 6:
+            return 3
+        elif health >= 3:
+            return 5
+        else:
+            return 10
+
  
 ##############################################################################################################
 
