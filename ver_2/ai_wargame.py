@@ -779,10 +779,23 @@ class Game:
                  +(9999*self.num_units_defender["AI"])))
     
 
-    def e1(self):
-        return 
-    
+    # heuristic e1 : game turn penalty & less weight for the program unit 
+    def e1(self, game):
+        turn_penalty = game.turns_played
 
+        return (((10*self.num_units_attacker["Virus"])
+                 +(5*self.num_units_attacker["Firewall"])
+                 +(0.1*self.num_units_attacker["Program"])
+                 +(9999*self.num_units_attacker["AI"]))-
+                 
+                ((10*self.num_units_defender["Tech"])
+                 +(5*self.num_units_defender["Firewall"])
+                 +(0.1*self.num_units_defender["Program"])
+                 +(9999*self.num_units_defender["AI"]))-
+
+                turn_penalty)
+    
+    # heuristic e2 : 
     def e2(self):
         return
  
@@ -803,7 +816,7 @@ def main():
     parser.add_argument('--max_turns', type = int, help = 'maximum number of turns')
     
     # select the heuristic function among e0,e1, and e2
-    parser.add_argument('--heuristic', type=int, default=0, help='select a heuristic function (0: e0, 1: e1, 2: e2)')
+    parser.add_argument('--heuristic', type=int, default=0, help='heuristic function: (0: e0, 1: e1, 2: e2)')
 
     ##input alpha-beta search mode
     parser.add_argument('--alpha_beta', type=str, default = "on", help = 'turn on/off alpha-beta search mode, on|off')
