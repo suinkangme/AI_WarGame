@@ -812,14 +812,12 @@ class Game:
         return (((10*self.num_units_attacker["Virus"])
                  +(5*self.num_units_attacker["Firewall"])
                  +(0.1*self.num_units_attacker["Program"])
-                 +(9999*self.num_units_attacker["AI"]))-
+                 +(9999*self.num_units_attacker["AI"]) * attacker_ai_health)-
                  
                 ((10*self.num_units_defender["Tech"])
                  +(5*self.num_units_defender["Firewall"])
                  +(0.1*self.num_units_defender["Program"])
-                 +(9999*self.num_units_defender["AI"]))-
-
-                attacker_ai_health - defender_ai_health)
+                 +(9999*self.num_units_defender["AI"]) * defender_ai_health))
     
     # give health penalty based on remaining health level of the units.
     def unit_health_penalty(self, health):
@@ -832,7 +830,6 @@ class Game:
         else:
             return 10
 
- 
 ##############################################################################################################
 
 def main():
