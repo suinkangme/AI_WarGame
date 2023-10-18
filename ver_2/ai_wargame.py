@@ -957,6 +957,9 @@ def main():
     # select the heuristic function among e0,e1, and e2
     parser.add_argument('--heuristic', type=int, default=0, help='heuristic function: (0: e0, 1: e1, 2: e2)')
 
+     # input minimax algorithm
+    parser.add_argument('--minimax', type=str, default = "on", help = 'turn on/off minimax mode, on|off')
+
     ##input alpha-beta search mode
     parser.add_argument('--alpha_beta', type=str, default = "on", help = 'turn on/off alpha-beta search mode, on|off')
     
@@ -986,6 +989,7 @@ def main():
     ## set up max num of turns as input value
     if args.max_turns is not None:
         options.max_turns = args.max_turns
+        options.minimax = False    
 
     # create a new game
     game = Game(options=options)
