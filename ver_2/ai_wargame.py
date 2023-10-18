@@ -639,6 +639,7 @@ class Game:
             if elapsed_time >= time_limit_returning:
                 break
 
+
         return (value, best_move, depth)
     
     def minmax_alphabeta(self, start_time, stats_dict, depth, alpha, beta, maximize : bool = False, coord = Coord | None)-> Tuple[int, CoordPair | None, float]:
@@ -710,13 +711,13 @@ class Game:
                             
                 return (value, best_move, depth)  
         
-
+    
     def suggest_move(self, output) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
                
         #This is a string to be printed in the output file
         report =""
-        result = (,,)
+        
         old_non_root_node = 0
         old_non_leaf_node = 0
         
@@ -733,6 +734,8 @@ class Game:
                 result = self.minmax_alphabeta(start_time, self.stats.evaluations_per_depth, 0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, True)                    
             else:
                 result = self.minmax_alphabeta(start_time, self.stats.evaluations_per_depth, 0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, False)
+        else: 
+            result = self.minimax(start_time, self.stats.evaluations_per_depth, 0)                    
         
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
@@ -989,7 +992,7 @@ def main():
     ## set up max num of turns as input value
     if args.max_turns is not None:
         options.max_turns = args.max_turns
-      
+        options.minimax = False    
 
     # create a new game
     game = Game(options=options)
@@ -1013,7 +1016,7 @@ def main():
         options.alpha_beta = False        
     
     ## open file and print initial configuration
-    title = f'gameTrace-{options.alpha_beta}-{options.max_time}-{options.max_turns}'
+    title = f'gameTrace--{options.alpha_beta}-{options.max_time}-{options.max_turns}'
     outputFile = open(f'{title}.txt', 'w')
     game.print_initial(outputFile, options)
     
