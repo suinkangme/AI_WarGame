@@ -649,41 +649,49 @@ class Game:
                
         #This is a string to be printed in the output file
         report =""
-        stats_dict = self.stats.evaluations_per_depth
+        
+        old_non_root_node = 0
+        old_non_leaf_node = 0
+        
+        for k in sorted(self.stats.evaluations_per_depth.keys()):
+            old_non_root_node += self.stats.evaluations_per_depth[k]
+            if k != len(stats_dict.keys()) - 1:
+                old_non_leaf_node += self.stats.evaluations_per_depth[k]
+        
         start_time = datetime.now()
         #(score, move, avg_depth) = self.random_move()
         
         if self.options.alpha_beta:
             if self.next_player == Player.Attacker:
-                result = self.minmax_alphabeta(stats_dict, 0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, True)                    
+                result = self.minmax_alphabeta(self.stats.evaluations_per_depth, 0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, True)                    
             else:
-                result = self.minmax_alphabeta(stats_dict, 0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, False)
+                result = self.minmax_alphabeta(self.stats.evaluations_per_depth, 0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, False)
         
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
         
+        #avg_depth will be replaced with something else
         score, move, avg_depth = result
        
         report += f"Heuristic score: {score}\n"
         
         print(f"Heuristic score: {score}")
-        print(f"Average recursive depth: {avg_depth:0.1f}")
         
         total_evals = sum(self.stats.evaluations_per_depth.values())
         report += f"Cumulative evals: {total_evals}\n"
         print(f"Cumulative evals: {total_evals}")
         
-        non_root_node = 0
-        non_leaf_node = 0
+        new_non_root_node = 0
+        new_non_leaf_node = 0
         
         print(f"Evals per depth: ",end='')
         report += f"Evals per depth: \n" 
         keys = sorted(self.stats.evaluations_per_depth.keys())
         for k in keys:
             print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
-            non_root_node += self.stats.evaluations_per_depth[k]
+            new_non_root_node += self.stats.evaluations_per_depth[k]
             if k != keys[-1]:
-                non_leaf_node += self.stats.evaluations_per_depth[k]
+            new_non_leaf_node += self.stats.evaluations_per_depth[k]
             report += f"{k}:{self.stats.evaluations_per_depth[k]} "
         print()
         report += "\n"
@@ -704,7 +712,7 @@ class Game:
         report += f"Elapsed time: {elapsed_seconds:0.1f}s\n"
         
         print(f"Branching Factor: {non_root_node / non_leaf_node: 0.1f}")
-        report += f"Branching Factor: {non_root_node / non_leaf_node: 0.1f}"
+        report += f"Branching Factor: {new_non_root_node - old_non_root_node / new_non_leaf_node - old_non_leaf_node: 0.1f}"
         
         print(report, file = output)
         return move
