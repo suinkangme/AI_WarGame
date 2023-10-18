@@ -691,8 +691,8 @@ class Game:
             print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
             new_non_root_node += self.stats.evaluations_per_depth[k]
             if k != keys[-1]:
-            new_non_leaf_node += self.stats.evaluations_per_depth[k]
-            report += f"{k}:{self.stats.evaluations_per_depth[k]} "
+                new_non_leaf_node += self.stats.evaluations_per_depth[k]
+                report += f"{k}:{self.stats.evaluations_per_depth[k]} "
         print()
         report += "\n"
         
