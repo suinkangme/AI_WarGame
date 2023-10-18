@@ -715,7 +715,8 @@ class Game:
             old_non_root_node += self.stats.evaluations_per_depth[k]
             if k != len(self.stats.evaluations_per_depth.keys()) - 1:
                 old_non_leaf_node += self.stats.evaluations_per_depth[k]
-        
+        old_non_root_node +=1 
+       
         start_time = time.time()
         #(score, move, avg_depth) = self.random_move()
         
@@ -761,6 +762,7 @@ class Game:
             if k != keys[-1]:
                 new_non_leaf_node += self.stats.evaluations_per_depth[k]
                 report += f"{k}:{self.stats.evaluations_per_depth[k]} "
+        new_non_root_node += 1
         print()
         report += "\n"
         
@@ -778,9 +780,8 @@ class Game:
       
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
         report += f"Elapsed time: {elapsed_seconds:0.1f}s\n"
-        
-#         print(f"Branching Factor: {(new_non_root_node - old_non_root_node) / (new_non_leaf_node - old_non_leaf_node): 0.1f}")
-#         report += f"Branching Factor: {(new_non_root_node - old_non_root_node) / (new_non_leaf_node - old_non_leaf_node): 0.1f}"
+        print(f"Branching Factor: {abs(new_non_root_node - old_non_root_node) / abs(new_non_leaf_node - old_non_leaf_node): 0.1f}")
+        report += f"Branching Factor: {abs(new_non_root_node - old_non_root_node) / abs(new_non_leaf_node - old_non_leaf_node): 0.1f}"
         
         print(report, file = output)
         print(move)
