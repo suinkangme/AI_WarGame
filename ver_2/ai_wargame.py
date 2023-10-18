@@ -230,7 +230,7 @@ class Options:
     max_turns : int | None = 100
     randomize_moves : bool = True
     broker : str | None = None
-
+    heuristic: int = 0
 ##############################################################################################################
 
 @dataclass(slots=True)
@@ -597,58 +597,48 @@ class Game:
         else:
             return (0, None, 0)
         
-    def minimax(self, stats_dict, depth, maximize, coord, start_time) -> Tuple[int, CoordPair | None, float]:
+    def minimax(self, start_time, stats_dict, depth, maximize, coord = CoordPair | None) -> Tuple[int, CoordPair | None, float]:
          
-        start_time = datetime.now()
-        time_limit_searching = (start_time * 0.6).total_seconds()
-        time_limit_returning = (start_time * 0.4).total_seconds()
+        time_limit_searching = (start_time * 0.6)
+        time_limit_returning = (start_time * 0.4)
         
-        if time_limit_searching or self.move_candidates() is None:
-            return (self.option_heuristic, coord, depth)
+        if self.options.max_depth == depth or time.time() - start_time >= time_limit_searching  or self.move_candidates() is None:
+            return (self.options.heuristic, coord, depth)
         
         game_simul = self.clone()
         move_candidates = list(self.move_candidates())
         best_move = CoordPair()
         value = float('-inf') if maximize else float('inf')
 
-        while True:
-            for child_coord in move_candidates:
-                game_simul.perform_move(child_coord)
-                h_score, move, result_depth = game_simul.minimax(depth - 1, False, child_coord)
+        for child_coord in move_candidates:
+            game_simul.perform_move(child_coord)
+            maximize = not maximize
+            h_score, move, result_depth = game_simul.minimax(start_time, stats_dict, depth + 1, maximize, child_coord)
                 
-                keys = stats_dict.keys()
-                if result_depth not in keys:
-                    stats_dict.update({result_depth : 1})
-                else:
-                    stats_dict.update({result_depth : stats_dict[result_depth]+1})
+            keys = stats_dict.keys()
+            if result_depth not in keys:
+                stats_dict.update({result_depth : 1})
+            else:
+                stats_dict.update({result_depth : stats_dict[result_depth]+1})
 
-                if maximize:
-                    if h_score > value:
-                        best_move = child_coord
-                        value = h_score
-                else:
-                    if h_score < value:
-                        best_move = child_coord
-                        value = h_score
-
-                elapsed_time = start_time - time.time().total_seconds()
-                
-                if elapsed_time >= time_limit_searching:
-                    break
-
-            if elapsed_time >= time_limit_returning:
-                break
-
+            if maximize:
+                if h_score > value:
+                    best_move = child_coord
+                    value = h_score
+            else:
+                if h_score < value:
+                    best_move = child_coord
+                    value = h_score
 
         return (value, best_move, depth)
     
-    def minmax_alphabeta(self, start_time, stats_dict, depth, alpha, beta, maximize : bool = False, coord = Coord | None)-> Tuple[int, CoordPair | None, float]:
+    def minmax_alphabeta(self, start_time, stats_dict, depth, alpha, beta, maximize : bool = False, coord = CoordPair | None)-> Tuple[int, CoordPair | None, float]:
         
         time_check = time.time()
         time_duration = time_check - start_time
         
-        if time_duration >= 0.7*start_time or self.move_candidates() is None:
-            return (self.option_heuristic, coord, depth)
+        if depth == self.options.max_depth or time_duration >= 0.7*start_time or self.move_candidates() is None:
+            return (self.options.heuristic, coord, depth)
         
         else:
             game_simul = self.clone()
@@ -665,7 +655,7 @@ class Game:
                         return (value, best_move, depth)
                     else:
                         game_simul.perform_move(children)
-                        h_score, move, result_depth = game_simul.minmax_alphabeta(stats_dict, depth+1, alpha, beta, False, children)
+                        h_score, move, result_depth = game_simul.minmax_alphabeta(start_time, stats_dict, depth+1, alpha, beta, False, children)
                         
                         ##update game stat dictionary
                         keys = stats_dict.keys()
@@ -692,7 +682,7 @@ class Game:
                     ##if you have more time go check more children
                     else:
                         game_simul.perform_move(children)
-                        h_score, move, result_depth = game_simul.minmax_alphabeta(stats_dict, depth+1, alpha, beta, True, children)
+                        h_score, move, result_depth = game_simul.minmax_alphabeta(start_time, stats_dict, depth+1, alpha, beta, True, children)
                 
                         ##update game stat dictionary
                         keys = stats_dict.keys()
@@ -723,10 +713,10 @@ class Game:
         
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             old_non_root_node += self.stats.evaluations_per_depth[k]
-            if k != len(stats_dict.keys()) - 1:
+            if k != len(self.stats.evaluations_per_depth.keys()) - 1:
                 old_non_leaf_node += self.stats.evaluations_per_depth[k]
         
-        start_time = datetime.now()
+        start_time = time.time()
         #(score, move, avg_depth) = self.random_move()
         
         if self.options.alpha_beta:
@@ -735,9 +725,12 @@ class Game:
             else:
                 result = self.minmax_alphabeta(start_time, self.stats.evaluations_per_depth, 0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, False)
         else: 
-            result = self.minimax(start_time, self.stats.evaluations_per_depth, 0)                    
-        
-        elapsed_seconds = (datetime.now() - start_time).total_seconds()
+            if self.next_player == Player.Attacker:
+                result = self.minimax(start_time, self.stats.evaluations_per_depth, 0, True)    
+            else:
+                result = self.minimax(start_time, self.stats.evaluations_per_depth, 0, False)
+     
+        elapsed_seconds = time.time() - start_time
         self.stats.total_seconds += elapsed_seconds
         
         #depth is only useful inside the minimax method.
@@ -786,10 +779,11 @@ class Game:
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
         report += f"Elapsed time: {elapsed_seconds:0.1f}s\n"
         
-        print(f"Branching Factor: {(new_non_root_node - old_non_root_node) / (new_non_leaf_node - old_non_leaf_node): 0.1f}")
-        report += f"Branching Factor: {(new_non_root_node - old_non_root_node) / (new_non_leaf_node - old_non_leaf_node): 0.1f}"
+#         print(f"Branching Factor: {(new_non_root_node - old_non_root_node) / (new_non_leaf_node - old_non_leaf_node): 0.1f}")
+#         report += f"Branching Factor: {(new_non_root_node - old_non_root_node) / (new_non_leaf_node - old_non_leaf_node): 0.1f}"
         
         print(report, file = output)
+        print(move)
         return move
 
     def post_move_to_broker(self, move: CoordPair):
@@ -900,13 +894,13 @@ class Game:
         
     
     # heuristic e2 : less weight for the program unit 
-    def e2(self, game):
+    def e2(self):
 
         attacker_ai_coord = None
         penalty_e2 = 0
 
         # find Attacker's AI coord
-        for (coord, unit) in game.player_units(Player.Attacker):
+        for (coord, unit) in self.player_units(Player.Attacker):
             if unit.type == UnitType.AI:
                 attacker_ai_coord = coord
                 break      
@@ -914,7 +908,7 @@ class Game:
         # iterate over Coords inside a rectangle centered on Attacker's AI
         surrounding_coords = list(attacker_ai_coord.iter_range(1))      
         for coord in surrounding_coords:
-            unit = game.get(coord)
+            unit = self.get(coord)
             if unit is not None:
                 player_name = unit.player.name
                 unit_type = unit.type.name
@@ -1000,16 +994,14 @@ def main():
     # determine which heuristic algorithm will be used
     if args.game_type != "manual" and (game_type == GameType.AttackerVsComp or game_type == GameType.CompVsDefender or game_type ==GameType.CompVsComp):
         if args.heuristic == 0:
-            option_heuristic = Game.e0
+            options.heuristic = game.e0()
         elif args.heuristic == 1:
-            option_heuristic = Game.e1
+            options.heuristic = game.e1()
         elif args.heuristic == 2:
-            option_heuristic = Game.e2
+            options.heuristic = game.e2()
         else:
             print("Invalid choice. Using the default heuristic (e0).")
-            option_heuristic = Game.e0
-    else:
-        option_heuristic = None
+            options.heuristic = game.e0()
 
     ##if game_type is human vs human or alpha_beta was asked to be off, turn off alpha beta
     if args.game_type == "manual" or args.alpha_beta == "off":
