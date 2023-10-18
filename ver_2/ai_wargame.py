@@ -597,12 +597,13 @@ class Game:
         else:
             return (0, None, 0)
         
-    def minimax(self, stats_dict, depth, maximize, coord, time_limit) -> Tuple[int, CoordPair | None, float]:
-        start_time = time.time()
-        time_limit_searching = time_limit * 0.6  
-        time_limit_returning = time_limit * 0.4 
+    def minimax(self, stats_dict, depth, maximize, coord, start_time) -> Tuple[int, CoordPair | None, float]:
+         
+        start_time = datetime.now()
+        time_limit_searching = (start_time * 0.6).total_seconds()
+        time_limit_returning = (start_time * 0.4).total_seconds()
         
-        if depth == self.options.max_depth or self.move_candidates() is None:
+        if time_limit_searching or self.move_candidates() is None:
             return (self.option_heuristic, coord, depth)
         
         game_simul = self.clone()
@@ -630,7 +631,8 @@ class Game:
                         best_move = child_coord
                         value = h_score
 
-                elapsed_time = time.time() - start_time
+                elapsed_time = start_time - time.time().total_seconds()
+                
                 if elapsed_time >= time_limit_searching:
                     break
 
@@ -650,7 +652,7 @@ class Game:
         else:
             game_simul = self.clone()
             move_candidates = list(game_simul.move_candidates())
-            best_move = None
+            best_move = CoordPair()
             
             if maximize:
                 value = alpha
@@ -680,8 +682,7 @@ class Game:
                 return (value, best_move, depth)
             
             else:
-                value = beta
-                
+                value = beta      
                 for children in move_candidates:
                     
                     ##time limit
