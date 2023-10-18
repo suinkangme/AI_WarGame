@@ -711,7 +711,7 @@ class Game:
                 return (value, best_move, depth)  
         
 
-    def suggest_move(self, output,stats_dict) -> CoordPair | None:
+    def suggest_move(self, output) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
                
         #This is a string to be printed in the output file
@@ -1013,7 +1013,7 @@ def main():
         options.alpha_beta = False        
     
     ## open file and print initial configuration
-    title = f'gameTrace-{options.alpha_beta}-{options.max_time}-{options.max_turns}'
+    title = f'gameTrace-{options.minimax}-{options.alpha_beta}-{options.max_time}-{options.max_turns}'
     outputFile = open(f'{title}.txt', 'w')
     game.print_initial(outputFile, options)
     
