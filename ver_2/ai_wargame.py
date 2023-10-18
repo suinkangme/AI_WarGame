@@ -593,8 +593,14 @@ class Game:
             return (0, move_candidates[0], 1)
         else:
             return (0, None, 0)
-    
         
+    def minimax():
+
+
+
+
+        return 
+    
     def minmax_alphabeta(self, stats_dict, depth, alpha, beta, maximize : bool = False, coord = Coord | None)-> Tuple[int, CoordPair | None, float]:
         if depth == self.options.max_depth or self.move_candidates() is None:
             return (self.heuristic, coord, depth)
@@ -828,8 +834,7 @@ class Game:
     def e2(self, game):
 
         attacker_ai_coord = None
-        penalty_attacker = 0
-        penalty_defender = 0
+        penalty_e2 = 0
 
         # find Attacker's AI coord
         for (coord, unit) in game.player_units(Player.Attacker):
@@ -849,32 +854,24 @@ class Game:
                 # calculate penalty for attacker's unit
                 if player_name == Player.Attacker:
                     if unit_type == UnitType.Virus:
-                        penalty_attacker += 1000
+                        penalty_e2 += 1000
                     elif unit_type == UnitType.Program:
-                        penalty_attacker += 50
+                        penalty_e2 += 50
                     elif unit_type == UnitType.Firewall:
-                        penalty_attacker += 1
+                        penalty_e2 += 1
 
                 # calculate penalty for attacker's unit
                 elif player_name == Player.Defender:
                     if unit_type == UnitType.Tech:
-                        penalty_defender -= 500
+                        penalty_e2 -= 500
                     elif unit_type == UnitType.AI:
-                        penalty_defender -= 250
+                        penalty_e2 -= 250
                     elif unit_type == UnitType.Program:
-                        penalty_defender -= 100
+                        penalty_e2 -= 100
                     elif unit_type == UnitType.Firewall:
-                        penalty_defender -= 1
+                        penalty_e2 -= 1
 
-        return (((10*self.num_units_attacker["Virus"])
-                 +(5*self.num_units_attacker["Firewall"])
-                 +(0.1*self.num_units_attacker["Program"])
-                 +(9999*self.num_units_attacker["AI"]) 
-                 + penalty_attacker + penalty_defender ) -
-                 ((10*self.num_units_defender["Tech"])
-                 +(5*self.num_units_defender["Firewall"])
-                 +(0.1*self.num_units_defender["Program"])
-                 +(9999*self.num_units_defender["AI"])))
+        return penalty_e2
 
 ##############################################################################################################
 
