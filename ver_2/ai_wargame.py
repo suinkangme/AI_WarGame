@@ -639,53 +639,75 @@ class Game:
 
         return (value, best_move, depth)
     
-    def minmax_alphabeta(self, stats_dict, depth, alpha, beta, maximize : bool = False, coord = Coord | None)-> Tuple[int, CoordPair | None, float]:
-        if depth == self.options.max_depth or self.move_candidates() is None:
+    def minmax_alphabeta(self, start_time, stats_dict, depth, alpha, beta, maximize : bool = False, coord = Coord | None)-> Tuple[int, CoordPair | None, float]:
+        
+        time_check = time.time()
+        time_duration = time_check - start_time
+        
+        if time_duration >= 0.7*start_time or self.move_candidates() is None:
             return (self.option_heuristic, coord, depth)
         
-        game_simul = self.clone()
-        move_candidates = list(game_simul.move_candidates())
-        best_move = CoordPair()
-        
-        if maximize:
-            value = alpha
-            for children in move_candidates:
-                game_simul.perform_move(children)
-                h_score, move, result_depth = game_simul.minmax_alphabeta(stats_dict, depth+1, alpha, beta, False, children) 
-                ##update game stat dictionary
-                keys = stats_dict.keys()
-                if result_depth not in keys:
-                    stats_dict.update({result_depth : 1})
-                else:
-                    stats_dict.update({result_depth : stats_dict[result_depth]+1})
-                    
-                if(h_score > value):
-                    best_move = children
-                value = max(value, h_score)
-                alpha = max(alpha, value)
-                if beta <= alpha:
-                    break
-            return (value, best_move, depth)
         else:
-            value = beta
-            for children in move_candidates:
-                game_simul.perform_move(children)
-                h_score, move, result_depth = game_simul.minmax_alphabeta(stats_dict, depth+1, alpha, beta, True, children)
+            game_simul = self.clone()
+            move_candidates = list(game_simul.move_candidates())
+            best_move = None
+            
+            if maximize:
+                value = alpha
                 
-                ##update game stat dictionary
-                keys = stats_dict.keys()
-                if result_depth not in keys:
-                    stats_dict.update({result_depth : 1})
-                else:
-                    stats_dict.update({result_depth : stats_dict[result_depth]+1})
+                for children in move_candidates:
                     
-                if(h_score < value):
-                    best_move = children
-                value = min (value, h_score)
-                beta = min (beta, value)
-                if beta <= alpha:
-                    break
-            return (value, best_move, depth)  
+                    ## check time and do not go if it is gonna be too late
+                    if time_duration >= 0.7*start_time:
+                        return (value, best_move, depth)
+                    else:
+                        game_simul.perform_move(children)
+                        h_score, move, result_depth = game_simul.minmax_alphabeta(stats_dict, depth+1, alpha, beta, False, children)
+                        
+                        ##update game stat dictionary
+                        keys = stats_dict.keys()
+                        if result_depth not in keys:
+                            stats_dict.update({result_depth : 1})
+                        else:
+                            stats_dict.update({result_depth : stats_dict[result_depth]+1})
+                    
+                        if(h_score > value):
+                            best_move = children
+                        value = max(value, h_score)
+                        alpha = max(alpha, value)
+                        if beta <= alpha:
+                            break
+                return (value, best_move, depth)
+            
+            else:
+                value = beta
+                
+                for children in move_candidates:
+                    
+                    ##time limit
+                    if time_duration >= 0.7*start_time:
+                        return (value, best_move, depth)
+                    ##if you have more time go check more children
+                    else:
+                        game_simul.perform_move(children)
+                        h_score, move, result_depth = game_simul.minmax_alphabeta(stats_dict, depth+1, alpha, beta, True, children)
+                
+                        ##update game stat dictionary
+                        keys = stats_dict.keys()
+                        if result_depth not in keys:
+                            stats_dict.update({result_depth : 1})
+                        else:
+                            stats_dict.update({result_depth : stats_dict[result_depth]+1})
+                    
+                        ##pruning
+                        if(h_score < value):
+                            best_move = children
+                        value = min (value, h_score)
+                        beta = min (beta, value)
+                        if beta <= alpha:
+                            break
+                            
+                return (value, best_move, depth)  
         
 
     def suggest_move(self, output,stats_dict) -> CoordPair | None:
@@ -707,16 +729,21 @@ class Game:
         
         if self.options.alpha_beta:
             if self.next_player == Player.Attacker:
-                result = self.minmax_alphabeta(self.stats.evaluations_per_depth, 0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, True)                    
+                result = self.minmax_alphabeta(start_time, self.stats.evaluations_per_depth, 0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, True)                    
             else:
-                result = self.minmax_alphabeta(self.stats.evaluations_per_depth, 0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, False)
+                result = self.minmax_alphabeta(start_time, self.stats.evaluations_per_depth, 0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, False)
         
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
         
-        #avg_depth will be replaced with something else
-        score, move, avg_depth = result
-       
+        #depth is only useful inside the minimax method.
+        score, move, depth = result
+        
+        ##if elapsed_seconds is over the max_time, AI lose
+        if elapsed_seconds > self.options.max_time:
+            move = None
+            return move
+               
         report += f"Heuristic score: {score}\n"
         
         print(f"Heuristic score: {score}")
@@ -755,8 +782,8 @@ class Game:
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
         report += f"Elapsed time: {elapsed_seconds:0.1f}s\n"
         
-        print(f"Branching Factor: {non_root_node / non_leaf_node: 0.1f}")
-        report += f"Branching Factor: {new_non_root_node - old_non_root_node / new_non_leaf_node - old_non_leaf_node: 0.1f}"
+        print(f"Branching Factor: {(new_non_root_node - old_non_root_node) / (new_non_leaf_node - old_non_leaf_node): 0.1f}")
+        report += f"Branching Factor: {(new_non_root_node - old_non_root_node) / (new_non_leaf_node - old_non_leaf_node): 0.1f}"
         
         print(report, file = output)
         return move
