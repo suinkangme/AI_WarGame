@@ -10,6 +10,9 @@ import random
 import requests
 #import sys
 import sys
+# import time
+import time
+
 # maximum and minimum values for our heuristic scores (usually represents an end of game condition)
 MAX_HEURISTIC_SCORE = 2000000000
 MIN_HEURISTIC_SCORE = -2000000000
@@ -594,16 +597,51 @@ class Game:
         else:
             return (0, None, 0)
         
-    def minimax():
+    def minimax(self, stats_dict, depth, maximize, coord, time_limit) -> Tuple[int, CoordPair | None, float]:
+        start_time = time.time()
+        time_limit_searching = time_limit * 0.6  
+        time_limit_returning = time_limit * 0.4 
+        
+        if depth == self.options.max_depth or self.move_candidates() is None:
+            return (self.option_heuristic, coord, depth)
+        
+        game_simul = self.clone()
+        move_candidates = list(self.move_candidates())
+        best_move = CoordPair()
+        value = float('-inf') if maximize else float('inf')
 
+        while True:
+            for child_coord in move_candidates:
+                game_simul.perform_move(child_coord)
+                h_score, move, result_depth = game_simul.minimax(depth - 1, False, child_coord)
+                
+                keys = stats_dict.keys()
+                if result_depth not in keys:
+                    stats_dict.update({result_depth : 1})
+                else:
+                    stats_dict.update({result_depth : stats_dict[result_depth]+1})
 
+                if maximize:
+                    if h_score > value:
+                        best_move = child_coord
+                        value = h_score
+                else:
+                    if h_score < value:
+                        best_move = child_coord
+                        value = h_score
 
+                elapsed_time = time.time() - start_time
+                if elapsed_time >= time_limit_searching:
+                    break
 
-        return 
+            if elapsed_time >= time_limit_returning:
+                break
+
+        return (value, best_move, depth)
     
     def minmax_alphabeta(self, stats_dict, depth, alpha, beta, maximize : bool = False, coord = Coord | None)-> Tuple[int, CoordPair | None, float]:
         if depth == self.options.max_depth or self.move_candidates() is None:
-            return (self.heuristic, coord, depth)
+            return (self.option_heuristic, coord, depth)
         
         game_simul = self.clone()
         move_candidates = list(game_simul.move_candidates())
@@ -650,7 +688,7 @@ class Game:
             return (value, best_move, depth)  
         
 
-    def suggest_move(self, output) -> CoordPair | None:
+    def suggest_move(self, output,stats_dict) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
                
         #This is a string to be printed in the output file
@@ -926,17 +964,17 @@ def main():
 
     # determine which heuristic algorithm will be used
     if args.game_type != "manual" and (game_type == GameType.AttackerVsComp or game_type == GameType.CompVsDefender or game_type ==GameType.CompVsComp):
-        if args.heuristic == '1':
-            heuristic_function = Game.e0
-        elif args.heuristic == '2':
-            heuristic_function = Game.e1
-        elif args.heuristic == '3':
-            heuristic_function = Game.e2
+        if args.heuristic == 0:
+            option_heuristic = Game.e0
+        elif args.heuristic == 1:
+            option_heuristic = Game.e1
+        elif args.heuristic == 2:
+            option_heuristic = Game.e2
         else:
             print("Invalid choice. Using the default heuristic (e0).")
-            heuristic_function = Game.e0
+            option_heuristic = Game.e0
     else:
-        heuristic_function = None
+        option_heuristic = None
 
     ##if game_type is human vs human or alpha_beta was asked to be off, turn off alpha beta
     if args.game_type == "manual" or args.alpha_beta == "off":
