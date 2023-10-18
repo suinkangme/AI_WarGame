@@ -827,12 +827,51 @@ class Game:
     # heuristic e2 : less weight for the program unit 
     def e2(self, game):
 
+        attacker_ai_coord = None
+        penalty_attacker = 0
+        penalty_defender = 0
+
+        # find Attacker's AI coord
+        for (coord, unit) in game.player_units(Player.Attacker):
+            if unit.type == UnitType.AI:
+                attacker_ai_coord = coord
+                break      
+
+        # iterate over Coords inside a rectangle centered on Attacker's AI
+        surrounding_coords = list(attacker_ai_coord.iter_range(1))      
+        for coord in surrounding_coords:
+            unit = game.get(coord)
+            if unit is not None:
+                player_name = unit.player.name
+                unit_type = unit.type.name
+
+                # identify the unit belongs to which player
+                # calculate penalty for attacker's unit
+                if player_name == Player.Attacker:
+                    if unit_type == UnitType.Virus:
+                        penalty_attacker += 1000
+                    elif unit_type == UnitType.Program:
+                        penalty_attacker += 50
+                    elif unit_type == UnitType.Firewall:
+                        penalty_attacker += 1
+
+                # calculate penalty for attacker's unit
+                elif player_name == Player.Defender:
+                    if unit_type == UnitType.Tech:
+                        penalty_defender -= 500
+                    elif unit_type == UnitType.AI:
+                        penalty_defender -= 250
+                    elif unit_type == UnitType.Program:
+                        penalty_defender -= 100
+                    elif unit_type == UnitType.Firewall:
+                        penalty_defender -= 1
+
         return (((10*self.num_units_attacker["Virus"])
                  +(5*self.num_units_attacker["Firewall"])
                  +(0.1*self.num_units_attacker["Program"])
-                 +(9999*self.num_units_attacker["AI"]))-
-                 
-                ((10*self.num_units_defender["Tech"])
+                 +(9999*self.num_units_attacker["AI"]) 
+                 + penalty_attacker + penalty_defender ) -
+                 ((10*self.num_units_defender["Tech"])
                  +(5*self.num_units_defender["Firewall"])
                  +(0.1*self.num_units_defender["Program"])
                  +(9999*self.num_units_defender["AI"])))
