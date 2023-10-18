@@ -716,7 +716,7 @@ class Game:
                
         #This is a string to be printed in the output file
         report =""
-        
+        result = (,,)
         old_non_root_node = 0
         old_non_leaf_node = 0
         
@@ -989,7 +989,7 @@ def main():
     ## set up max num of turns as input value
     if args.max_turns is not None:
         options.max_turns = args.max_turns
-        options.minimax = False    
+      
 
     # create a new game
     game = Game(options=options)
@@ -1013,7 +1013,7 @@ def main():
         options.alpha_beta = False        
     
     ## open file and print initial configuration
-    title = f'gameTrace-{options.minimax}-{options.alpha_beta}-{options.max_time}-{options.max_turns}'
+    title = f'gameTrace-{options.alpha_beta}-{options.max_time}-{options.max_turns}'
     outputFile = open(f'{title}.txt', 'w')
     game.print_initial(outputFile, options)
     
