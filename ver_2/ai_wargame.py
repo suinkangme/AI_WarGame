@@ -224,7 +224,7 @@ class Options:
     dim: int = 5
     max_depth : int | None = 4
     min_depth : int | None = 2
-    max_time : float | None = 5.0
+    max_time : float | None = 3.0
     game_type : GameType = GameType.AttackerVsDefender
     alpha_beta : bool = True
     max_turns : int | None = 100
@@ -599,10 +599,10 @@ class Game:
         
     def minimax(self, start_time, stats_dict, depth, maximize, coord = CoordPair | None) -> Tuple[int, CoordPair | None, float]:
          
-        time_limit_searching = (start_time * 0.6)
-        time_limit_returning = (start_time * 0.4)
+        time_limit_searching = (self.options.max_time * 0.6)
+        time_limit_returning = (self.options.max_time * 0.4)
         
-        if self.options.max_depth == depth or time.time() - start_time >= time_limit_searching  or self.move_candidates() is None:
+        if (datetime.now() - start_time).total_seconds() >= time_limit_searching  or self.move_candidates() is None:
             return (self.options.heuristic, coord, depth)
         
         game_simul = self.clone()
@@ -634,36 +634,34 @@ class Game:
     
     def minmax_alphabeta(self, start_time, stats_dict, depth, alpha, beta, maximize : bool = False, coord = CoordPair | None)-> Tuple[int, CoordPair | None, float]:
         
-        time_check = time.time()
-        time_duration = time_check - start_time
+        time_check = datetime.now()
+        time_duration = (time_check - start_time).total_seconds()
         
-        if depth == self.options.max_depth or time_duration >= 0.7*start_time or self.move_candidates() is None:
+        if time_duration >= 0.7*self.options.max_time or list(self.move_candidates()) is None: 
             return (self.options.heuristic, coord, depth)
         
         else:
+            move_candidates = list(self.move_candidates())
             game_simul = self.clone()
-            move_candidates = list(game_simul.move_candidates())
             best_move = CoordPair()
             
             if maximize:
                 value = alpha
-                
                 for children in move_candidates:
                     
                     ## check time and do not go if it is gonna be too late
-                    if time_duration >= 0.7*start_time:
+                    if time_duration >= 0.7*self.options.max_time:
                         return (value, best_move, depth)
                     else:
                         game_simul.perform_move(children)
                         h_score, move, result_depth = game_simul.minmax_alphabeta(start_time, stats_dict, depth+1, alpha, beta, False, children)
-                        
                         ##update game stat dictionary
                         keys = stats_dict.keys()
                         if result_depth not in keys:
                             stats_dict.update({result_depth : 1})
                         else:
                             stats_dict.update({result_depth : stats_dict[result_depth]+1})
-                    
+                                            
                         if(h_score > value):
                             best_move = children
                         value = max(value, h_score)
@@ -675,9 +673,8 @@ class Game:
             else:
                 value = beta      
                 for children in move_candidates:
-                    
                     ##time limit
-                    if time_duration >= 0.7*start_time:
+                    if time_duration >= 0.7*self.options.max_time:
                         return (value, best_move, depth)
                     ##if you have more time go check more children
                     else:
@@ -717,7 +714,7 @@ class Game:
                 old_non_leaf_node += self.stats.evaluations_per_depth[k]
         old_non_root_node +=1 
        
-        start_time = time.time()
+        start_time = datetime.now()
         #(score, move, avg_depth) = self.random_move()
         
         if self.options.alpha_beta:
@@ -731,7 +728,7 @@ class Game:
             else:
                 result = self.minimax(start_time, self.stats.evaluations_per_depth, 0, False)
      
-        elapsed_seconds = time.time() - start_time
+        elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
         
         #depth is only useful inside the minimax method.
@@ -757,7 +754,7 @@ class Game:
         report += f"Evals per depth: \n" 
         keys = sorted(self.stats.evaluations_per_depth.keys())
         for k in keys:
-            print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
+            #print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
             new_non_root_node += self.stats.evaluations_per_depth[k]
             if k != keys[-1]:
                 new_non_leaf_node += self.stats.evaluations_per_depth[k]
@@ -766,11 +763,11 @@ class Game:
         print()
         report += "\n"
         
-        print(f"Evals per depth percentage: ", end='')
+        #print(f"Evals per depth percentage: ", end='')
         report += f"Evals per depth percentage: \n"
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             calcul = (self.stats.evaluations_per_depth[k]/total_evals)*100
-            print(f"{k}: {calcul:0.1f}% ", end='')
+            #print(f"{k}: {calcul:0.1f}% ", end='')
             report += f"{k}: {calcul:0.1f}% "
         print()
         report += "\n"
@@ -940,6 +937,7 @@ class Game:
 ##############################################################################################################
 
 def main():
+    sys.setrecursionlimit(20000)
     # parse command line arguments
     parser = argparse.ArgumentParser(
         prog='ai_wargame',
