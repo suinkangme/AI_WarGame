@@ -600,9 +600,8 @@ class Game:
     def minimax(self, start_time, stats_dict, depth, maximize, coord = CoordPair | None) -> Tuple[int, CoordPair | None, float]:
          
         time_limit_searching = (self.options.max_time * 0.6)
-        time_limit_returning = (self.options.max_time * 0.4)
         
-        if (datetime.now() - start_time).total_seconds() >= time_limit_searching  or self.move_candidates() is None:
+        if (datetime.now() - start_time).total_seconds() >= time_limit_searching or self.move_candidates() is None or self.turns_played >= self.options.max_turns or depth >= self.options.max_depth:
             return (self.options.heuristic, coord, depth)
         
         game_simul = self.clone()
@@ -637,7 +636,7 @@ class Game:
         time_check = datetime.now()
         time_duration = (time_check - start_time).total_seconds()
         
-        if time_duration >= 0.7*self.options.max_time or list(self.move_candidates()) is None: 
+        if time_duration >= 0.7*self.options.max_time or list(self.move_candidates()) is None  or self.turns_played >= self.options.max_turns or depth >= self.options.max_depth: 
             return (self.options.heuristic, coord, depth)
         
         else:
@@ -937,7 +936,6 @@ class Game:
 ##############################################################################################################
 
 def main():
-    sys.setrecursionlimit(20000)
     # parse command line arguments
     parser = argparse.ArgumentParser(
         prog='ai_wargame',
