@@ -224,7 +224,7 @@ class Options:
     dim: int = 5
     max_depth : int | None = 4
     min_depth : int | None = 2
-    max_time : float | None = 3.0
+    max_time : float | None = 5.0
     game_type : GameType = GameType.AttackerVsDefender
     alpha_beta : bool = True
     max_turns : int | None = 100
@@ -599,7 +599,7 @@ class Game:
         
     def minimax(self, start_time, stats_dict, depth, maximize, coord = CoordPair | None) -> Tuple[int, CoordPair | None, float]:
          
-        time_limit_searching = (self.options.max_time * 0.6)
+        time_limit_searching = (self.options.max_time * 0.9)
         
         if (datetime.now() - start_time).total_seconds() >= time_limit_searching or self.move_candidates() is None or self.turns_played >= self.options.max_turns or depth >= self.options.max_depth:
             return (self.options.heuristic, coord, depth)
@@ -636,7 +636,7 @@ class Game:
         time_check = datetime.now()
         time_duration = (time_check - start_time).total_seconds()
         
-        if time_duration >= 0.7*self.options.max_time or list(self.move_candidates()) is None  or self.turns_played >= self.options.max_turns or depth >= self.options.max_depth: 
+        if time_duration >= 0.9*self.options.max_time or list(self.move_candidates()) is None  or self.turns_played >= self.options.max_turns or depth >= self.options.max_depth: 
             return (self.options.heuristic, coord, depth)
         
         else:
@@ -649,7 +649,7 @@ class Game:
                 for children in move_candidates:
                     
                     ## check time and do not go if it is gonna be too late
-                    if time_duration >= 0.7*self.options.max_time:
+                    if time_duration >= 0.9*self.options.max_time:
                         return (value, best_move, depth)
                     else:
                         game_simul.perform_move(children)
@@ -659,7 +659,7 @@ class Game:
                         if result_depth not in keys:
                             stats_dict.update({result_depth : 1})
                         else:
-                            stats_dict.update({result_depth : stats_dict[result_depth]+1})
+                            stats_dict.update({result_depth : stats_dict[result_depth]+1})                          
                                             
                         if(h_score > value):
                             best_move = children
@@ -673,7 +673,7 @@ class Game:
                 value = beta      
                 for children in move_candidates:
                     ##time limit
-                    if time_duration >= 0.7*self.options.max_time:
+                    if time_duration >= 0.9*self.options.max_time:
                         return (value, best_move, depth)
                     ##if you have more time go check more children
                     else:
@@ -704,14 +704,7 @@ class Game:
         #This is a string to be printed in the output file
         report =""
         
-        old_non_root_node = 0
-        old_non_leaf_node = 0
-        
-        for k in sorted(self.stats.evaluations_per_depth.keys()):
-            old_non_root_node += self.stats.evaluations_per_depth[k]
-            if k != len(self.stats.evaluations_per_depth.keys()) - 1:
-                old_non_leaf_node += self.stats.evaluations_per_depth[k]
-        old_non_root_node +=1 
+        old_values = self.stats.evaluations_per_depth.copy()      
        
         start_time = datetime.now()
         #(score, move, avg_depth) = self.random_move()
@@ -734,7 +727,7 @@ class Game:
         score, move, depth = result
         
         ##if elapsed_seconds is over the max_time, AI lose
-        if elapsed_seconds > self.options.max_time:
+        if elapsed_seconds >= self.options.max_time:
             move = None
             return move
                
@@ -752,21 +745,30 @@ class Game:
         print(f"Evals per depth: ",end='')
         report += f"Evals per depth: \n" 
         keys = sorted(self.stats.evaluations_per_depth.keys())
+ 
         for k in keys:
-            #print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
-            new_non_root_node += self.stats.evaluations_per_depth[k]
-            if k != keys[-1]:
-                new_non_leaf_node += self.stats.evaluations_per_depth[k]
-                report += f"{k}:{self.stats.evaluations_per_depth[k]} "
-        new_non_root_node += 1
+            print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
+            report += f"{k}:{self.stats.evaluations_per_depth[k]}"
+        
+        for k in keys:
+            if not old_values:
+                new_non_root_node += self.stats.evaluations_per_depth[k]
+                if k != keys[-1]:
+                    new_non_leaf_node += self.stats.evaluations_per_depth[k]
+            else:
+                new_non_root_node += self.stats.evaluations_per_depth[k] - old_values[k]
+                if k != keys[-1]:
+                    new_non_leaf_node += self.stats.evaluations_per_depth[k] - old_values[k]
+                    
+        new_non_leaf_node += 1
         print()
         report += "\n"
         
-        #print(f"Evals per depth percentage: ", end='')
+        print(f"Evals per depth percentage: ", end='')
         report += f"Evals per depth percentage: \n"
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             calcul = (self.stats.evaluations_per_depth[k]/total_evals)*100
-            #print(f"{k}: {calcul:0.1f}% ", end='')
+            print(f"{k}: {calcul:0.1f}% ", end='')
             report += f"{k}: {calcul:0.1f}% "
         print()
         report += "\n"
@@ -776,8 +778,8 @@ class Game:
       
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
         report += f"Elapsed time: {elapsed_seconds:0.1f}s\n"
-        print(f"Branching Factor: {abs(new_non_root_node - old_non_root_node) / abs(new_non_leaf_node - old_non_leaf_node): 0.1f}")
-        report += f"Branching Factor: {abs(new_non_root_node - old_non_root_node) / abs(new_non_leaf_node - old_non_leaf_node): 0.1f}"
+        print(f"Branching Factor: {(new_non_root_node)/( new_non_leaf_node): 0.1f}")
+        report += f"Branching Factor: {(new_non_root_node) / (new_non_leaf_node): 0.1f}"
         
         print(report, file = output)
         print(move)
@@ -950,9 +952,6 @@ def main():
     
     # select the heuristic function among e0,e1, and e2
     parser.add_argument('--heuristic', type=int, default=0, help='heuristic function: (0: e0, 1: e1, 2: e2)')
-
-     # input minimax algorithm
-    parser.add_argument('--minimax', type=str, default = "on", help = 'turn on/off minimax mode, on|off')
 
     ##input alpha-beta search mode
     parser.add_argument('--alpha_beta', type=str, default = "on", help = 'turn on/off alpha-beta search mode, on|off')
