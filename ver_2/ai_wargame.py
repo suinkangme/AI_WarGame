@@ -520,7 +520,7 @@ class Game:
         else:
             # human player can have a chance without penalty
             retry = 1 
-            while retry > 0:
+            while retry >= 0:
                 mv = self.read_move()
                 (success,result) = self.perform_move(mv)
                 if success:
@@ -532,8 +532,9 @@ class Game:
                 else:
                     print("The move is not valid! Try again.")
                     retry -= 1
-            if retry == 0:
+            if retry < 0:
                 print("No more attempt allowed. Proceeding to the next turn.")
+                self.next_turn()
 
     def computer_turn(self, output) -> CoordPair | None:
         """Computer plays a move."""
