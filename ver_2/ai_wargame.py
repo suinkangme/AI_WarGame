@@ -599,10 +599,17 @@ class Game:
         
     def minimax(self, start_time, stats_dict, depth, maximize, coord = CoordPair | None) -> Tuple[int, CoordPair | None, float]:
          
-        time_limit_searching = (self.options.max_time * 0.9)
+        time_limit_searching = (self.options.max_time * 0.99)
         
-        if (datetime.now() - start_time).total_seconds() >= time_limit_searching or self.move_candidates() is None or self.turns_played >= self.options.max_turns or depth >= self.options.max_depth:
-            return (self.options.heuristic, coord, depth)
+        if  depth >= self.options.max_depth or (datetime.now() - start_time).total_seconds() >= time_limit_searching or self.move_candidates() is None or depth >= self.options.max_turns:
+            h_value = 0
+            if self.options.heuristic == 0:
+                h_value = self.e0()
+            elif self.options.heuristic == 1:
+                h_value = self.e1()
+            elif self.options.heuristic == 2:
+                h_value = self.e2()
+            return (h_value, coord, depth)
         
         game_simul = self.clone()
         move_candidates = list(self.move_candidates())
@@ -636,8 +643,15 @@ class Game:
         time_check = datetime.now()
         time_duration = (time_check - start_time).total_seconds()
         
-        if time_duration >= 0.9*self.options.max_time or list(self.move_candidates()) is None  or self.turns_played >= self.options.max_turns or depth >= self.options.max_depth: 
-            return (self.options.heuristic, coord, depth)
+        if depth >= self.options.max_depth or time_duration >=  0.99*self.options.max_time or list(self.move_candidates()) is None or depth >= self.options.max_turns:
+            h_value = 0
+            if self.options.heuristic == 0:
+                h_value = self.e0()
+            elif self.options.heuristic == 1:
+                h_value = self.e1()
+            elif self.options.heuristic == 2:
+                h_value = self.e2()
+            return (h_value, coord, depth)
         
         else:
             move_candidates = list(self.move_candidates())
@@ -649,7 +663,7 @@ class Game:
                 for children in move_candidates:
                     
                     ## check time and do not go if it is gonna be too late
-                    if time_duration >= 0.9*self.options.max_time:
+                    if time_duration >= 0.99*self.options.max_time:
                         return (value, best_move, depth)
                     else:
                         game_simul.perform_move(children)
@@ -673,7 +687,7 @@ class Game:
                 value = beta      
                 for children in move_candidates:
                     ##time limit
-                    if time_duration >= 0.9*self.options.max_time:
+                    if time_duration >= 0.99*self.options.max_time:
                         return (value, best_move, depth)
                     ##if you have more time go check more children
                     else:
@@ -863,7 +877,6 @@ class Game:
     
     # heuristic e1 : add penalties based on the health level of the AI units
     def e1(self):
-        
         attacker_ai_unit = Unit(player=Player.Attacker, type=UnitType.AI)
         defender_ai_unit = Unit(player=Player.Defender, type=UnitType.AI)
 
@@ -894,7 +907,6 @@ class Game:
     
     # heuristic e2 : less weight for the program unit 
     def e2(self):
-
         attacker_ai_coord = None
         penalty_e2 = 0
 
@@ -902,36 +914,39 @@ class Game:
         for (coord, unit) in self.player_units(Player.Attacker):
             if unit.type == UnitType.AI:
                 attacker_ai_coord = coord
-                break      
-
+                break
+        
+        if attacker_ai_coord:
         # iterate over Coords inside a rectangle centered on Attacker's AI
-        surrounding_coords = list(attacker_ai_coord.iter_range(1))      
-        for coord in surrounding_coords:
-            unit = self.get(coord)
-            if unit is not None:
-                player_name = unit.player.name
-                unit_type = unit.type.name
+            surrounding_coords = list(attacker_ai_coord.iter_range(3))      
+            for coord in surrounding_coords:
+                unit = self.get(coord)
+                if unit is not None:
+                    player_name = unit.player
+                    unit_type = unit.type
 
                 # identify the unit belongs to which player
                 # calculate penalty for attacker's unit
-                if player_name == Player.Attacker:
-                    if unit_type == UnitType.Virus:
-                        penalty_e2 += 1000
-                    elif unit_type == UnitType.Program:
-                        penalty_e2 += 50
-                    elif unit_type == UnitType.Firewall:
-                        penalty_e2 += 1
+                    if player_name == Player.Attacker:
+                        if unit_type == UnitType.Virus:
+                            penalty_e2 += 1000
+                        elif unit_type == UnitType.Program:
+                            penalty_e2 += 50
+                        elif unit_type == UnitType.Firewall:
+                            penalty_e2 += 1
 
                 # calculate penalty for attacker's unit
-                elif player_name == Player.Defender:
-                    if unit_type == UnitType.Tech:
-                        penalty_e2 -= 500
-                    elif unit_type == UnitType.AI:
-                        penalty_e2 -= 250
-                    elif unit_type == UnitType.Program:
-                        penalty_e2 -= 100
-                    elif unit_type == UnitType.Firewall:
-                        penalty_e2 -= 1
+                    elif player_name == Player.Defender:
+                        if unit_type == UnitType.Tech:
+                            penalty_e2 -= 500
+                        elif unit_type == UnitType.AI:
+                            penalty_e2 -= 250
+                        elif unit_type == UnitType.Program:
+                            penalty_e2 -= 100
+                        elif unit_type == UnitType.Firewall:
+                            penalty_e2 -= 1
+        else:
+            penalty_e2 = MIN_HEURISTIC_SCORE
 
         return penalty_e2
 
@@ -981,23 +996,18 @@ def main():
         
     ## set up max num of turns as input value
     if args.max_turns is not None:
-        options.max_turns = args.max_turns
-        options.minimax = False    
+        options.max_turns = args.max_turns    
 
     # create a new game
     game = Game(options=options)
 
     # determine which heuristic algorithm will be used
     if args.game_type != "manual" and (game_type == GameType.AttackerVsComp or game_type == GameType.CompVsDefender or game_type ==GameType.CompVsComp):
-        if args.heuristic == 0:
-            options.heuristic = game.e0()
-        elif args.heuristic == 1:
-            options.heuristic = game.e1()
-        elif args.heuristic == 2:
-            options.heuristic = game.e2()
-        else:
+        if args.heuristic not in [0, 1, 2]:
             print("Invalid choice. Using the default heuristic (e0).")
-            options.heuristic = game.e0()
+            game.options.heuristic = 0
+        else:
+            game.options.heuristic = args.heuristic
 
     ##if game_type is human vs human or alpha_beta was asked to be off, turn off alpha beta
     if args.game_type == "manual" or args.alpha_beta == "off":
