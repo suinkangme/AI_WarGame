@@ -976,29 +976,29 @@ class Game:
         attacker_ai_unit = Unit(player=Player.Attacker, type=UnitType.AI)
         defender_ai_unit = Unit(player=Player.Defender, type=UnitType.AI)
 
-        attacker_ai_health = self.unit_health_penalty(attacker_ai_unit.health)
-        defender_ai_health = self.unit_health_penalty(defender_ai_unit.health)
+        attacker_penalty = self.unit_health_penalty(attacker_ai_unit.health)
+        defender_penalty = self.unit_health_penalty(defender_ai_unit.health)
 
         return (((10*self.num_units_attacker["Virus"])
                  +(5*self.num_units_attacker["Firewall"])
                  +(0.1*self.num_units_attacker["Program"])
-                 +(9999*self.num_units_attacker["AI"]) * attacker_ai_health)-
+                 +(9999*self.num_units_attacker["AI"]) * defender_penalty)-
                  
                 ((10*self.num_units_defender["Tech"])
                  +(5*self.num_units_defender["Firewall"])
                  +(0.1*self.num_units_defender["Program"])
-                 +(9999*self.num_units_defender["AI"]) * defender_ai_health))
+                 +(9999*self.num_units_defender["AI"]) * attacker_penalty))
     
     # give health penalty based on remaining health level of the units.
     def unit_health_penalty(self, health):
         if health>= 9:
             return 0.1
         elif health >= 6:
-            return 3
-        elif health >= 3:
             return 5
+        elif health >= 3:
+            return 100
         else:
-            return 10
+            return 1000
         
     
     # heuristic e2 : less weight for the program unit 
