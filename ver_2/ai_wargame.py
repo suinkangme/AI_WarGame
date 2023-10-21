@@ -333,8 +333,10 @@ class Game:
                     
             if unit.type == UnitType.AI:
                 if unit.player == Player.Attacker:
+                    self.num_units_attacker["AI"] -= 1
                     self._attacker_has_ai = False
                 elif unit.player == Player.Defender:
+                    self.num_units_defender["AI"] -= 1
                     self._defender_has_ai = False
 
     def mod_health(self, coord : Coord, health_delta : int):
@@ -406,12 +408,21 @@ class Game:
                 ## T must be adjacent to S in any of the 4 directions
                 adjacent_list = list(coords.src.iter_adjacent())
                 if coords.dst in adjacent_list:
-                    if unit.type == UnitType.Tech and unit_dst.type == UnitType.Virus:
+                    if unit_dst.health == 9:
                         return False
-                    elif unit_dst.health == 9:
-                        return False 
-                    else: 
-                        return True                   
+                    else:
+                        if unit.type == UnitType.Tech:
+                            return (unit_dst.type in [UnitType.AI, UnitType.Firewall, UnitType.Program])
+                        elif unit.type == UnitType.AI:
+                            return (unit_dst.type in [UnitType.Virus, UnitType.Tech])
+                        else:
+                            return False
+#                     if unit.type == UnitType.Tech and unit_dst.type == UnitType.Virus:
+#                         return False
+#                     elif unit_dst.health == 9:
+#                         return False 
+#                     else: 
+#                         return True                   
          
         return True
     
@@ -614,39 +625,50 @@ class Game:
             elif self.options.heuristic == 2:
                 h_value = self.e2()
             return (h_value, coord, depth)
+        else: 
+            game_simul = self.clone()
+            move_candidates = list(self.move_candidates())
+            best_move = CoordPair()
+            original_game_board = game_simul.board.copy()
+            original_num_units_attacker = self.num_units_attacker.copy()
+            original_num_units_defender = self.num_units_defender.copy()
         
-        game_simul = self.clone()
-        move_candidates = list(self.move_candidates())
-        best_move = CoordPair()
-        value = float('-inf') if maximize else float('inf')
+            value = float('-inf') if maximize else float('inf')
 
-        for child_coord in move_candidates:
-            game_simul.perform_move(child_coord)
-            maximize = not maximize
-            h_score, move, result_depth = game_simul.minimax(start_time, stats_dict, depth + 1, maximize, child_coord)
+            for child_coord in move_candidates:
+                game_simul.perform_move(child_coord)
+                maximize = not maximize
+                h_score, move, result_depth = game_simul.minimax(start_time, stats_dict, depth + 1, maximize, child_coord)
+
+                game_simul.num_units_attacker = original_num_units_attacker.copy()
+                game_simul.num_units_defender = original_num_units_defender.copy()
+                game_simul.board = original_game_board.copy()
+                maximize = not maximize
                 
-            keys = stats_dict.keys()
-            if result_depth not in keys:
-                stats_dict.update({result_depth : 1})
-            else:
-                stats_dict.update({result_depth : stats_dict[result_depth]+1})
+                keys = stats_dict.keys()
+                if result_depth not in keys:
+                    stats_dict.update({result_depth : 1})
+                else:
+                    stats_dict.update({result_depth : stats_dict[result_depth]+1})
 
-            if maximize:
-                if h_score > value:
-                    best_move = child_coord
-                    value = h_score
-            else:
-                if h_score < value:
-                    best_move = child_coord
-                    value = h_score
+                if maximize:
+                    if h_score > value:
+                        best_move = child_coord
+                        value = h_score
+                else:
+                    if h_score < value:
+                        best_move = child_coord
+                        value = h_score
 
-        return (value, best_move, depth)
+            return (value, best_move, depth)
     
     def minmax_alphabeta(self, start_time, stats_dict, depth, alpha, beta, maximize : bool, coord = CoordPair | None)-> Tuple[int, CoordPair | None, float]:
         
+        ##keep checking current time
         time_check = datetime.now()
         time_duration = (time_check - start_time).total_seconds()
         
+        ## when it reaches the depth limit, or time is running out, or it is terminal (literally no move after or depth reached the max_turns), return h_score
         if depth == self.options.max_depth or time_duration >=  0.99*self.options.max_time or list(self.move_candidates()) is None or depth >= self.options.max_turns:
             h_value = 0
             if self.options.heuristic == 0:
@@ -657,25 +679,36 @@ class Game:
                 h_value = self.e2()
             return (h_value, coord, depth)
         
+        ##otherwise, do recursion
         else:
-            move_candidates = list(self.move_candidates())
+            ##save the configuration of the game state
             game_simul = self.clone()
+            original_game_board = game_simul.board.copy()
+            original_num_units_attacker = self.num_units_attacker.copy()
+            original_num_units_defender = self.num_units_defender.copy()
+            
+            ##generate the list of children state
+            move_candidates = list(self.move_candidates())
+            
+            ##initialize the best_move
             best_move = CoordPair()
             
+            ##if the player is max in this depth
             if maximize:
-             
                 value = alpha
                 for children in move_candidates:
                     ## check time and do not go if it is gonna be too late
                     if time_duration >= 0.99*self.options.max_time:
                         return (value, best_move, depth)
                     else:
-                        original_num_units_attacker = game_simul.num_units_attacker.copy()
-                        original_num_units_defender = game_simul.num_units_defender.copy()
+                        ##siumulate the move
                         game_simul.perform_move(children)
                         h_score, move, result_depth = game_simul.minmax_alphabeta(start_time, stats_dict, depth+1, alpha, beta, not maximize, children)
-                        game_simul.num_units_attacker = original_num_units_attacker
-                        game_simul.num_units_defender = original_num_units_defender
+                        
+                        ##return the game back to original state
+                        game_simul.num_units_attacker = original_num_units_attacker.copy()
+                        game_simul.num_units_defender = original_num_units_defender.copy()
+                        game_simul.board = original_game_board.copy()
                         
                         ##update game stat dictionary
                         keys = stats_dict.keys()
@@ -683,7 +716,8 @@ class Game:
                             stats_dict.update({result_depth : 1})
                         else:
                             stats_dict.update({result_depth : stats_dict[result_depth]+1})                          
-                                            
+                        
+                        ##pruning
                         if(h_score > value):
                             best_move = children
                         value = max(value, h_score)
@@ -693,22 +727,24 @@ class Game:
               
                 return (value, best_move, depth)
             
+            ##if the player is min in this depth
             else:
        
                 value = beta
                 for children in move_candidates:
-                    ##time limit
+                    ## check time and do not go if it is gonna be too late
                     if time_duration >= 0.99*self.options.max_time:
                         return (value, best_move, depth)
-                    ##if you have more time go check more children
                     else:
-                        original_num_units_attacker = game_simul.num_units_attacker.copy()
-                        original_num_units_defender = game_simul.num_units_defender.copy()
+                        ##simulate the move
                         game_simul.perform_move(children)
                         h_score, move, result_depth = game_simul.minmax_alphabeta(start_time, stats_dict, depth+1, alpha, beta, not maximize, children)
-                        print(f'h_score from max {h_score}')
-                        game_simul.num_units_attacker = original_num_units_attacker
-                        game_simul.num_units_defender = original_num_units_defender
+                        
+                        ##return the game back to original state
+                        game_simul.num_units_attacker = original_num_units_attacker.copy()
+                        game_simul.num_units_defender = original_num_units_defender.copy()
+                        game_simul.board = original_game_board.copy()
+                        
                         ##update game stat dictionary
                         keys = stats_dict.keys()
                         if result_depth not in keys:
@@ -723,7 +759,6 @@ class Game:
                         beta = min (beta, h_score) 
                         if beta <= alpha:
                             break
-                
 
                 return (value, best_move, depth)  
         
@@ -731,35 +766,49 @@ class Game:
     def suggest_move(self, output) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
                
-        #This is a string to be printed in the output file
+        ##This is a string to be printed in the output file
         report =""
         
-        old_values = self.stats.evaluations_per_depth.copy()      
+        ##copy the stats dictionary before it gets explored
+        old_values = self.stats.evaluations_per_depth.copy()
+        
+        ##initialize if num_units_attacker and num_units_defender - beginning of the game
         if len(self.num_units_attacker) == 0:
             self.num_units_attacker = {'Virus': 2, 'Firewall': 1, 'Program': 2, 'AI': 1}
         if len(self.num_units_defender) == 0:
             self.num_units_defender = {'Tech': 2, 'Firewall': 2, 'Program': 1, 'AI': 1}
-                   
+        
+        ##save the original num of attacker/defender units since game will be shallow copied except the board
+        original_num_units_attacker = self.num_units_attacker.copy()
+        original_num_units_defender = self.num_units_defender.copy()
+        
+        ##measure time before it goes
         start_time = datetime.now()
-        #(score, move, avg_depth) = self.random_move()
         
-        
+        ##if alpha_beta is on
         if self.options.alpha_beta:
+            ##in our game, attacker is max and defender is min
             if self.next_player == Player.Attacker:
                 maximize = True
-                result = self.minmax_alphabeta(start_time, self.stats.evaluations_per_depth, 0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, maximize)                    
+                result = self.minmax_alphabeta(start_time, self.stats.evaluations_per_depth, 0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, maximize)       
             else:
                 maximize = False
                 result = self.minmax_alphabeta(start_time, self.stats.evaluations_per_depth, 0, MIN_HEURISTIC_SCORE, MAX_HEURISTIC_SCORE, maximize)
+        ##if alpha_beta is off
         else: 
             if self.next_player == Player.Attacker:
                 result = self.minimax(start_time, self.stats.evaluations_per_depth, 0, True)    
             else:
                 result = self.minimax(start_time, self.stats.evaluations_per_depth, 0, False)
-     
+        
+        ##calculate the time
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
-                
+        
+        ## in case the dictionary is modified during the exploration, restore it
+        self.num_units_attacker = original_num_units_attacker.copy()
+        self.num_units_defender = original_num_units_defender.copy()
+        
         #depth is only useful inside the minimax method.
         score, move, depth = result
         
@@ -767,18 +816,18 @@ class Game:
         if elapsed_seconds >= self.options.max_time:
             move = None
             return move
-               
-        report += f"Heuristic score: {score}\n"
         
+        ##generate report and print at the console
+        ##heuristic score result
+        report += f"Heuristic score: {score}\n"
         print(f"Heuristic score: {score}")
         
+        ##cumulate number of evaluated states
         total_evals = sum(self.stats.evaluations_per_depth.values())
         report += f"Cumulative evals: {total_evals}\n"
         print(f"Cumulative evals: {total_evals}")
-        
-        new_non_root_node = 0
-        new_non_leaf_node = 0
-        
+         
+        ## same number as above but split over each depth
         print(f"Evals per depth: ",end='')
         report += f"Evals per depth: \n" 
         keys = sorted(self.stats.evaluations_per_depth.keys())
@@ -787,12 +836,18 @@ class Game:
             print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
             report += f"{k}:{self.stats.evaluations_per_depth[k]}"
         
+        ## to calculate the branhching factor
+        new_non_root_node = 0
+        new_non_leaf_node = 0
+        
         for k in keys:
+            ## at the very first time, there will be no previous dictionary stats
             if not old_values:
                 new_non_root_node += self.stats.evaluations_per_depth[k]
                 if k != keys[-1]:
                     new_non_leaf_node += self.stats.evaluations_per_depth[k]
             else:
+                ## if that depth has been recorded
                 if k in old_values.keys():
                     new_non_root_node += self.stats.evaluations_per_depth[k] - old_values[k]
                 else: 
@@ -802,11 +857,13 @@ class Game:
                         new_non_leaf_node += self.stats.evaluations_per_depth[k] - old_values[k]
                     else:
                         new_non_leaf_node ++ self.stats.evaluations_per_depth[k]
-
+       
+        ## include the root
         new_non_leaf_node += 1
         print()
         report += "\n"
         
+        ##same stats as above but calcul the percentage
         print(f"Evals per depth percentage: ", end='')
         report += f"Evals per depth percentage: \n"
         for k in sorted(self.stats.evaluations_per_depth.keys()):
@@ -815,17 +872,21 @@ class Game:
             report += f"{k}: {calcul:0.1f}% "
         print()
         report += "\n"
-
+        
+        ##print evaluation performace
         if self.stats.total_seconds > 0:
-            print(f"Eval perf.: {total_evals/self.stats.total_seconds/1000:0.1f}k/s")   
-      
+            print(f"Eval perf.: {total_evals/self.stats.total_seconds/1000:0.1f}k/s")
+        
+        ##report the time
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
         report += f"Elapsed time: {elapsed_seconds:0.1f}s\n"
+        
+        ##report the branching factor
         print(f"Branching Factor: {(new_non_root_node)/( new_non_leaf_node): 0.1f}")
         report += f"Branching Factor: {(new_non_root_node) / (new_non_leaf_node): 0.1f}"
         
+        ##print it to the output file
         print(report, file = output)
-        print(move)
         return move
 
     def post_move_to_broker(self, move: CoordPair):
@@ -888,7 +949,13 @@ class Game:
             play_mode = 'Player 1: AI vs Player 2: Human'
         else:
             play_mode = 'Player 1: AI vs Player 2: AI'
-        game_param = f'Game Mode\n{play_mode}\nTimeout in seconds: {options.max_time}\nMax # of turns: {options.max_turns}\n'
+        if options.heuristic == 0:
+            heuristic_name = "e0"
+        elif options.heuristic == 1:
+            heuristic_name = "e1"
+        else:
+            heuristic_name = "e2"     
+        game_param = f'Game Mode\n{play_mode}\nTimeout in seconds: {options.max_time}\nMax # of turns: {options.max_turns}\nHeuristic function: {heuristic_name}'
         print(game_param, file = output)
         print(self, file = output)       
     
