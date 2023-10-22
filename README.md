@@ -28,3 +28,17 @@ For this deliverable,
   * To play manual mode and set up the max time for each turn as 3 seconds, maximum number of turns as 50, type like this:<br/>
     `python ai_wargame.py --game_type "manual" --max_turns 50 --max_time 3.0`
   
+***Deliverable 2***
+
+For this deliverable,
+
+ * we added minimax and alpha beta pruning features.
+ 
+ * Now, game type other than manual is also playable (Computer vs. Human, Human vs. Computer, Computer vs. Computer)
+
+ * For the evaluation, e0, e1, and e2 functions are also added.
+
+ * By passing integer parameter 0 1 2, user can choose which evalulation function for the game. By default, e0 is used.
+
+ * For example, to play auto mode (Computer vs Computer mode) with evaluation function e1, type like this in the terminal:<br/>
+  `python ai_wargame.py --game_type "auto" --heuristic 1`
