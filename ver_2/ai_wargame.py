@@ -254,8 +254,6 @@ class Game:
     _defender_has_ai : bool = True
     
     ##how many each unit attacker and defender have? - to calculate heuristics
-#     num_units_attacker: dict[str,int] = {'Virus': 2, 'Firewall': 1, 'Program': 2, 'AI': 1}
-#     num_units_defender: dict[str,int] = {'Tech': 2, 'Firewall': 2, 'Program': 1, 'AI': 1}
     num_units_attacker: dict[str,int] = field(default_factory=dict)
     num_units_defender: dict[str,int] = field(default_factory=dict) 
     
@@ -416,14 +414,7 @@ class Game:
                         elif unit.type == UnitType.AI:
                             return (unit_dst.type in [UnitType.Virus, UnitType.Tech])
                         else:
-                            return False
-#                     if unit.type == UnitType.Tech and unit_dst.type == UnitType.Virus:
-#                         return False
-#                     elif unit_dst.health == 9:
-#                         return False 
-#                     else: 
-#                         return True                   
-         
+                            return False              
         return True
     
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
@@ -532,7 +523,7 @@ class Game:
                         break
                 sleep(0.1)
         else:
-            # human player can have a chance without penalty
+            ## human player can have one more chance without penalty
             retry = 1 
             while retry >= 0:
                 mv = self.read_move()
@@ -561,6 +552,7 @@ class Game:
                 print(f"Computer {self.next_player.name}: "+result, file = output)
                 self.next_turn()
             else:
+                ##perform move returns None for invalid move, which means Computer tried the illegal move
                 self.comp_illegal_move = True
         return mv
 
@@ -611,11 +603,13 @@ class Game:
             return (0, move_candidates[0], 1)
         else:
             return (0, None, 0)
-        
+    
+    ##minimax method
     def minimax(self, start_time, stats_dict, depth, maximize, coord = CoordPair | None) -> Tuple[int, CoordPair | None, float]:
-         
+        ## keep checking time 
         time_limit_searching = (self.options.max_time * 0.99)
         
+        ## when it reaches the depth limit, or time is running out, or it is terminal (literally no move after or depth reached the max_turns), return results.
         if  depth >= self.options.max_depth or (datetime.now() - start_time).total_seconds() >= time_limit_searching or self.move_candidates() is None or depth >= self.options.max_turns:
             h_value = 0
             if self.options.heuristic == 0:
@@ -625,32 +619,47 @@ class Game:
             elif self.options.heuristic == 2:
                 h_value = self.e2()
             return (h_value, coord, depth)
-        else: 
+        
+        ##otherwise, do recursion
+        else:
+            ##save the configuration of the game state
             game_simul = self.clone()
-            move_candidates = list(self.move_candidates())
-            best_move = CoordPair()
+            
+            ##save the configuration of the game state
             original_game_board = game_simul.board.copy()
             original_num_units_attacker = self.num_units_attacker.copy()
             original_num_units_defender = self.num_units_defender.copy()
-        
+            
+            ##generate the list of children state
+            move_candidates = list(self.move_candidates())
+            
+            ##initialize the best_move
+            best_move = CoordPair()
+            
             value = float('-inf') if maximize else float('inf')
 
             for child_coord in move_candidates:
+                ##simulate the move
                 game_simul.perform_move(child_coord)
+                
+                ##switch the min/max for deeper node and go searching
                 maximize = not maximize
                 h_score, move, result_depth = game_simul.minimax(start_time, stats_dict, depth + 1, maximize, child_coord)
 
+                ##return the game back to original state
                 game_simul.num_units_attacker = original_num_units_attacker.copy()
                 game_simul.num_units_defender = original_num_units_defender.copy()
                 game_simul.board = original_game_board.copy()
                 maximize = not maximize
                 
+                ##update game stat dictionary
                 keys = stats_dict.keys()
                 if result_depth not in keys:
                     stats_dict.update({result_depth : 1})
                 else:
                     stats_dict.update({result_depth : stats_dict[result_depth]+1})
 
+                ##decide the value to return depending on min/max
                 if maximize:
                     if h_score > value:
                         best_move = child_coord
@@ -662,6 +671,7 @@ class Game:
 
             return (value, best_move, depth)
     
+    ##minmax_alphabeta method
     def minmax_alphabeta(self, start_time, stats_dict, depth, alpha, beta, maximize : bool, coord = CoordPair | None)-> Tuple[int, CoordPair | None, float]:
         
         ##keep checking current time
@@ -704,7 +714,6 @@ class Game:
                         ##siumulate the move
                         game_simul.perform_move(children)
                         h_score, move, result_depth = game_simul.minmax_alphabeta(start_time, stats_dict, depth+1, alpha, beta, not maximize, children)
-                        
                         ##return the game back to original state
                         game_simul.num_units_attacker = original_num_units_attacker.copy()
                         game_simul.num_units_defender = original_num_units_defender.copy()
@@ -724,12 +733,10 @@ class Game:
                         alpha = max(alpha, h_score)
                         if beta <= alpha:
                             break
-              
                 return (value, best_move, depth)
             
             ##if the player is min in this depth
             else:
-       
                 value = beta
                 for children in move_candidates:
                     ## check time and do not go if it is gonna be too late
@@ -739,7 +746,6 @@ class Game:
                         ##simulate the move
                         game_simul.perform_move(children)
                         h_score, move, result_depth = game_simul.minmax_alphabeta(start_time, stats_dict, depth+1, alpha, beta, not maximize, children)
-                        
                         ##return the game back to original state
                         game_simul.num_units_attacker = original_num_units_attacker.copy()
                         game_simul.num_units_defender = original_num_units_defender.copy()
@@ -759,7 +765,6 @@ class Game:
                         beta = min (beta, h_score) 
                         if beta <= alpha:
                             break
-
                 return (value, best_move, depth)  
         
     
@@ -976,29 +981,29 @@ class Game:
         attacker_ai_unit = Unit(player=Player.Attacker, type=UnitType.AI)
         defender_ai_unit = Unit(player=Player.Defender, type=UnitType.AI)
 
-        attacker_ai_health = self.unit_health_penalty(attacker_ai_unit.health)
-        defender_ai_health = self.unit_health_penalty(defender_ai_unit.health)
+        attacker_penalty = self.unit_health_penalty(attacker_ai_unit.health)
+        defender_penalty = self.unit_health_penalty(defender_ai_unit.health)
 
         return (((10*self.num_units_attacker["Virus"])
                  +(5*self.num_units_attacker["Firewall"])
                  +(0.1*self.num_units_attacker["Program"])
-                 +(9999*self.num_units_attacker["AI"]) * attacker_ai_health)-
+                 +(9999*self.num_units_attacker["AI"]) * defender_penalty)-
                  
                 ((10*self.num_units_defender["Tech"])
                  +(5*self.num_units_defender["Firewall"])
                  +(0.1*self.num_units_defender["Program"])
-                 +(9999*self.num_units_defender["AI"]) * defender_ai_health))
+                 +(9999*self.num_units_defender["AI"]) * attacker_penalty))
     
     # give health penalty based on remaining health level of the units.
     def unit_health_penalty(self, health):
         if health>= 9:
             return 0.1
         elif health >= 6:
-            return 3
-        elif health >= 3:
             return 5
+        elif health >= 3:
+            return 100
         else:
-            return 10
+            return 1000
         
     
     # heuristic e2 : less weight for the program unit 
@@ -1061,7 +1066,7 @@ def main():
     ##input max num of turns
     parser.add_argument('--max_turns', type = int, help = 'maximum number of turns')
     
-    # select the heuristic function among e0,e1, and e2
+    ## select the heuristic function among e0,e1, and e2
     parser.add_argument('--heuristic', type=int, default=0, help='heuristic function: (0: e0, 1: e1, 2: e2)')
 
     ##input alpha-beta search mode
