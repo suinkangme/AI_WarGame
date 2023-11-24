@@ -7,7 +7,7 @@ Team: Superintelligence
 
 Student Id | Name
 -----------|-------
-40129337   | Suin Kang
+4*******   | Suin Kang
 40174913   | Hyun Soo Kim
 
 
