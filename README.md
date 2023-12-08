@@ -1,6 +1,6 @@
 # AI_WarGame
 
-## Artificial Intelligence(Leila Kosseim) Fall 2023 Project ##
+Artificial Intelligence(Leila Kosseim) - Fall 2023 Project
 
 Team: Superintelligence
 
