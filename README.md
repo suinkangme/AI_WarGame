@@ -1,15 +1,8 @@
 # AI_WarGame
 
-## COMP 472 Fall 2023 Project ##
+## Artificial Intelligence(Leila Kosseim) Fall 2023 Project ##
 
-Instructor: Leila Kosseim, Section NN <br/>
 Team: Superintelligence
-
-Student Id | Name
------------|-------
-4*******   | Suin Kang
-40174913   | Hyun Soo Kim
-
 
 ***Deliverable 1***
 
